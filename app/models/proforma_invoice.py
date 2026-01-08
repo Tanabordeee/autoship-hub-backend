@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Date, Numeric, DateTime, ForeignKey, BigInteger, Text, UniqueConstraint
+from sqlalchemy import Column, Integer, String, Numeric, DateTime, ForeignKey, BigInteger, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.db.base import Base
@@ -8,7 +8,7 @@ class ProformaInvoice(Base):
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     pi_id = Column(Text, nullable=False)
-    date = Column(Date, nullable=False)
+    date = Column(Text, nullable=False)
     
     shipper = Column(Text, nullable=False)
     consignee_name = Column(Text, nullable=False)
