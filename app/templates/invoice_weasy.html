@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @page {
+            size: A4;
+            margin: 10mm;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 10pt;
+            margin: 0;
+            padding: 0;
+            color: #000;
+        }
+
+        .container {
+            width: 100%;
+        }
+
+        .title-original {
+            color: #3b82f6;
+            text-decoration: underline;
+            font-weight: bold;
+            font-size: 11pt;
+            margin-bottom: 20px;
+        }
+
+        .header-title {
+            text-align: center;
+            font-weight: bold;
+            font-size: 12pt;
+            margin-bottom: 10px;
+        }
+
+        .border-all {
+            border: 1px solid black;
+        }
+
+        .flex {
+            display: flex;
+        }
+
+        .flex-col {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .flex-1 {
+            flex: 1;
+        }
+
+        .border-b {
+            border-bottom: 1px solid black;
+        }
+
+        .border-l {
+            border-left: 1px solid black;
+        }
+
+        .border-r {
+            border-right: 1px solid black;
+        }
+
+        .p-1 {
+            padding: 4px;
+        }
+
+        .p-2 {
+            padding: 8px;
+        }
+
+        .p-0 {
+            padding: 0;
+        }
+
+        .pb-3 {
+            padding-bottom: 12px;
+        }
+
+        .m-2 {
+            margin: 8px;
+        }
+
+        .underline {
+            text-decoration: underline;
+        }
+
+        .font-bold {
+            font-weight: bold;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .whitespace-pre-wrap {
+            white-space: pre-wrap;
+        }
+
+        .break-words {
+            word-wrap: break-word;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            font-size: 8pt;
+        }
+
+        th,
+        td {
+            border: 1px solid black;
+            padding: 4px;
+            vertical-align: top;
+        }
+
+        th {
+            vertical-align: middle;
+        }
+
+        .no-border-t {
+            border-top: none;
+        }
+
+        .no-border-b {
+            border-bottom: none;
+        }
+
+        .no-border-l {
+            border-left: none;
+        }
+
+        .no-border-r {
+            border-right: none;
+        }
+
+        .grid-desc {
+            display: inline-block;
+            width: 20px;
+            text-align: center;
+            vertical-align: top;
+        }
+
+        .grid-content {
+            display: inline-block;
+            width: calc(100% - 25px);
+            vertical-align: top;
+        }
+
+        .mt-60 {
+            margin-top: 60px;
+        }
+
+        .h-8 {
+            height: 32px;
+        }
+
+        .h-10 {
+            height: 40px;
+        }
+
+        .items-center {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .footer-section {
+            display: flex;
+            border: 1px solid black;
+            border-top: none;
+        }
+
+        .footer-col {
+            padding: 4px;
+            border-right: 1px solid black;
+        }
+
+        .footer-col:last-child {
+            border-right: none;
+        }
+
+        .no-border-row td {
+            border-top: none;
+            border-bottom: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="m-2">
+            <h2 class="title-original">ORIGINAL</h2>
+        </div>
+
+        <div class="header-title">PRO-FORMA INVOICE</div>
+
+        <table style="width:100%; border-bottom: none;">
+            <colgroup>
+                <col style="width:50%">
+                <col style="width:50%">
+            </colgroup>
+            <tr style=" border-bottom: none;">
+                <td style="vertical-align:top; border-right:1px solid black; padding: 0; border-bottom: none;">
+                    <div class="pb-3 border-b p-1">
+                        <h3 class="underline" style="margin:0; font-size: 9pt; margin-bottom: 4px;">CONSIGNEE</h3>
+                        <div class="whitespace-pre-wrap break-words">{{ invoice.consignee_name }}</div>
+                    </div>
+                    <div class="pb-3 border-b p-1">
+                        <h3 class="underline" style="margin:0; font-size: 9pt; margin-bottom: 4px;">NOTIFY PARTY</h3>
+                        <div class="whitespace-pre-wrap break-words">{{ invoice.notify_party_name }}</div>
+                    </div>
+                    <div class="pb-3 p-1">
+                        <h3 class="underline" style="margin:0; font-size: 9pt; margin-bottom: 4px;">SHIPPER &
+                            BENEFICIARY</h3>
+                        <div class="whitespace-pre-wrap break-words">{{ invoice.shipper }}</div>
+                    </div>
+                </td>
+
+                <td style="vertical-align:top; padding:4px; border-bottom: none;">
+                    <div class="font-bold">PRO-FORMA INVOICE : {{ invoice.id }}</div>
+                    <div class="font-bold">DATE : {{ invoice.date }}</div>
+                    <div class="font-bold">PAYMENT TERMS : {{ invoice.payment_term }}</div>
+                    <div class="font-bold">PAP PROSPERITY CO LTD</div>
+                    <div class="font-bold">ACCOUNT NUMBER : {{ invoice.account_number }}</div>
+                    <div class="font-bold">CURRENT ACCOUNT</div>
+                    <div class="font-bold">SWIFT CODE : {{ invoice.swift_code }}</div>
+                    <div class="whitespace-pre-wrap break-words font-bold">{{ invoice.bank }}</div>
+                </td>
+            </tr>
+        </table>
+
+        <table style="border-top: none;">
+            <colgroup>
+                <col style="width: 50%" />
+                <col style="width: 14%" />
+                <col style="width: 14%" />
+                <col style="width: 22%" />
+            </colgroup>
+            <thead>
+                <tr class="text-center">
+                    <th class="text-center font-bold">DESCRIPTION OF GOODS</th>
+                    <th class="text-center font-bold">UNIT PRICE</th>
+                    <th class="text-center font-bold">Q'TY<br>(UNITS)</th>
+                    <th class="text-center font-bold">C.I.F COLOMBO, SRILANKA<br>AMOUNT IN USD</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr class="no-border-row">
+                    <td class="p-1 font-bold">
+                        <span style="margin-right: 15px;">ITEM</span>
+                        <span>DESCRIPTION</span>
+                    </td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+
+                {% for base in range(0, invoice.items|length, 5) %}
+                {% set group = invoice.items %}
+                <tr class="no-border-row">
+                    <td>
+                        <div class="grid-desc">{{ base + 1 }}</div>
+                        <div class="grid-content whitespace-pre-wrap break-words">{{ group[base].description if
+                            group[base] is defined else "" }}</div>
+                    </td>
+                    <td class="text-center">{{ "{:,.2f}".format(group[base].unit_price) if group[base] is defined and
+                        group[base].unit_price else "" }}</td>
+                    <td class="text-center">{{ group[base].unit if group[base] is defined else "" }}</td>
+                    <td class="text-center">{{ "{:,.2f}".format(group[base].amount_in_usd) if group[base] is defined and
+                        group[base].amount_in_usd else "" }}
+                    </td>
+                </tr>
+                <tr class="no-border-row">
+                    <td>
+                        <div class="grid-desc">{{ base + 2 }}</div>
+                        <div class="grid-content">
+                            <span>YEAR OF MANUFACTURE : </span><span>{{ group[base + 1].description if group[base+1] is
+                                defined else "" }}</span>
+                        </div>
+                    </td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr class="no-border-row">
+                    <td>
+                        <div class="grid-desc">{{ base + 3 }}</div>
+                        <div class="grid-content">
+                            <span>CHASSIS : </span><span>{{ group[base + 2].description if group[base+2] is defined else
+                                "" }}</span>
+                        </div>
+                    </td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr class="no-border-row">
+                    <td>
+                        <div class="grid-desc">{{ base + 4 }}</div>
+                        <div class="grid-content">FREIGHT</div>
+                    </td>
+                    <td class="text-center">{{ "{:,.2f}".format(group[base + 3].unit_price) if group[base+3] is defined
+                        and group[base+3].unit_price else "" }}</td>
+                    <td class="text-center">{{ group[base + 3].unit if group[base+3] is defined else "" }}</td>
+                    <td class="text-center">{{ "{:,.2f}".format(group[base + 3].amount_in_usd) if group[base+3] is
+                        defined and group[base+3].amount_in_usd else "" }}
+                    </td>
+                </tr>
+                <tr class="no-border-row">
+                    <td>
+                        <div class="grid-desc">{{ base + 5 }}</div>
+                        <div class="grid-content">INSURANCE & H.S. CODE {{ group[base + 4].description if group[base+4]
+                            is defined else "" }}</div>
+                    </td>
+                    <td class="text-center">{{ "{:,.2f}".format(group[base + 4].unit_price) if group[base+4] is defined
+                        and group[base+4].unit_price else "" }}
+                    </td>
+                    <td class="text-center">{{ group[base + 4].unit if group[base+4] is defined else "" }}</td>
+                    <td class="text-center">{{ "{:,.2f}".format(group[base + 4].amount_in_usd) if group[base+4] is
+                        defined and group[base+4].amount_in_usd else "" }}</td>
+                </tr>
+                {% endfor %}
+
+                <tr class="no-border-row">
+                    <td>
+                        <div class="mt-60" style="margin-left: 20px;">
+                            <p class="underline font-bold" style="margin-bottom: 4px;">TERM & CONDITION</p>
+                            <div class="whitespace-pre-wrap break-words">{{ invoice.term_condition }}</div>
+                        </div>
+                    </td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+
+                <tr>
+                    <td colspan="2" class="p-2 text-center font-bold" style="vertical-align: middle">(TOTAL USD TWENTY
+                        THOUSAND
+                        ONLY)</td>
+                    <td class="p-0" style="vertical-align: middle; ">
+                        <div class="border-b h-8 items-center text-center">VAT 0%</div>
+                        <div class="h-10 items-center text-center leading-tight" style="font-size: 7pt;">
+                            TOTAL C.I.F.COLOMBO, SRILANKA
+                        </div>
+                    </td>
+                    <td class="p-0" style="vertical-align: middle;">
+                        <div class="border-b h-8 items-center text-center">0.00</div>
+                        <div class="h-10 items-center text-center font-bold">
+                            {{ "{:,.2f}".format(invoice.total_price) }}
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="width: 50%; padding: 4px; border-top: 1px solid black;">
+                        <p style="margin: 2px 0; font-size: 6pt;">POR OF LOADING : {{ invoice.port_of_loading }}</p>
+                        <p style="margin: 2px 0; font-size: 6pt;">PORT OF DISCHARGE : {{ invoice.port_of_discharge }}
+                        </p>
+                    </td>
+                    <td colspan="2" class="text-center"
+                        style="width: 28%; padding: 4px; border-left: 1px solid black; border-top: 1px solid black;">
+                        <p style="margin: 2px 0; font-size: 6pt;">ON BEHALF OF</p>
+                        <p style="margin: 2px 0; font-size: 6pt;">PAP PROSPERITY CO.,LTD.</p>
+                        <div style="height: 30px;"></div>
+                        <hr style="border: none; border-top: 1px solid black; margin: 4px 10px;">
+                        <p style="margin: 2px 0; font-size: 6pt;">JANTHANEE RATTANABUNJERD <br>OVERSEA SALES</p>
+                    </td>
+                    <td class="text-center"
+                        style="width: 22%; padding: 4px; border-left: 1px solid black; border-top: 1px solid black;">
+                        <p style="margin: 2px 0; font-size: 6pt;">ON BEHALF OF CUSTOMER</p>
+                        <div style="height: 44px;"></div>
+                        <hr style="border: none; border-top: 1px solid black; margin: 4px 10px;">
+                        <p style="margin: 2px 0; font-size: 6pt;">DOOKDIK CUSTOMER</p>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</body>
+
+</html>

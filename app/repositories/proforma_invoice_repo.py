@@ -3,6 +3,8 @@ from app.models.proforma_invoice import ProformaInvoice
 from app.models.proforma_invoice import PiItem
 from app.schemas.proforma_invoice import CreateProformaInvoice
 class ProformaInvoiceRepo:
+    def get_by_id(db:Session, pi_id:int):
+        return db.query(ProformaInvoice).filter(ProformaInvoice.id == pi_id).first()
     def create(db:Session, payload:CreateProformaInvoice , user_id:int):
         pi = ProformaInvoice(
             pi_id = payload.pi_id,
@@ -31,7 +33,6 @@ class ProformaInvoiceRepo:
                 unit = item.unit,
                 unit_price = item.unit_price,
                 amount_in_usd = item.amount_in_usd,
-                chassis = item.chassis,
                 pi_id = pi.id,
                 parent_items = item.parent_items
             )

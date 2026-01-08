@@ -7,7 +7,6 @@ class PiItemCreate(BaseModel):
     unit: int
     unit_price: float
     amount_in_usd: float
-    chassis:str
     parent_items: Optional[int] = None
     
 class CreateProformaInvoice(BaseModel):
