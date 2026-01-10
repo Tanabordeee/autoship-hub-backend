@@ -8,7 +8,7 @@ from app.models.user import User
 router = APIRouter()
 
 @router.post("/users", response_model=UserOut)
-def register(user: UserCreate, db: Session = Depends(get_db)):
+def register(user: UserCreate, db: Session = Depends(get_db) ,dependencies=[Depends(RoleChecker(["admin"]))]):
     return create_user(db, user.email, user.password , user.role)
 
 
