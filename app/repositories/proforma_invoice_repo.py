@@ -1,11 +1,18 @@
 from sqlalchemy.orm import Session
 from app.models.proforma_invoice import ProformaInvoice
 from app.models.proforma_invoice import PiItem
+from app.models.transaction import Transaction
 from app.schemas.proforma_invoice import CreateProformaInvoice
 class ProformaInvoiceRepo:
     def get_by_id(db:Session, pi_id:int):
         return db.query(ProformaInvoice).filter(ProformaInvoice.id == pi_id).first()
     def create(db:Session, payload:CreateProformaInvoice , user_id:int):
+        transaction = Transaction(
+            status = "pending",
+            current_process = "proforma_invoice",
+        )
+        db.add(transaction)
+        db.flush()
         pi = ProformaInvoice(
             pi_id = payload.pi_id,
             date = payload.date,
@@ -21,7 +28,8 @@ class ProformaInvoiceRepo:
             swift_code = payload.swift_code,
             total_price = payload.total_price,
             pi_approver = payload.pi_approver,
-            user_id = user_id
+            user_id = user_id,
+            transaction_id = transaction.id
         )
         db.add(pi)
         db.flush()

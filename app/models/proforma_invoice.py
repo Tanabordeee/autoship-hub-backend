@@ -30,10 +30,12 @@ class ProformaInvoice(Base):
     
     user_id = Column(BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
-
+    transaction_id = Column(BigInteger, ForeignKey("transactions.id", ondelete="CASCADE"), nullable=False)
     # Relationships
     user = relationship("User", back_populates="proforma_invoices")
     items = relationship("PiItem", back_populates="proforma_invoice", cascade="all, delete-orphan")
+    transaction = relationship("Transaction", back_populates="proforma_invoices")
+
 
 class PiItem(Base):
     __tablename__ = "pi_items"
