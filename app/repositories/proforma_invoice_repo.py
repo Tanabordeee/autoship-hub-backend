@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from app.models.proforma_invoice import ProformaInvoice
 from app.models.proforma_invoice import PiItem
 from app.models.transaction import Transaction
@@ -6,7 +6,32 @@ from app.schemas.proforma_invoice import CreateProformaInvoice
 from app.models.customer import Customer
 class ProformaInvoiceRepo:
     def get_by_id(db:Session, pi_id:str):
-        return db.query(ProformaInvoice).filter(ProformaInvoice.pi_id == pi_id).first()
+        return db.query(ProformaInvoice).options(joinedload(ProformaInvoice.transaction)).filter(ProformaInvoice.pi_id == pi_id).first()
+    def get_all(db:Session):
+        rows = db.query(
+        ProformaInvoice.pi_id,
+        ProformaInvoice.date,
+        Customer.customer_name,
+        Customer.customer_location,
+        ProformaInvoice.total_price,
+        Transaction.status
+        )\
+        .join(Customer)\
+        .join(Transaction)\
+        .all()
+
+        return [
+            {
+                "invoice_id": r.pi_id,
+                "date": r.date,
+                "customer": r.customer_name,
+                "location": r.customer_location,
+                "total": float(r.total_price),
+                "status": r.status
+            }
+            for r in rows
+        ]
+
     def create(db:Session, payload:CreateProformaInvoice , user_id:int):
         transaction = Transaction(
             status = "pending",

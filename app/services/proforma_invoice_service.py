@@ -30,6 +30,8 @@ def generate_pdf(pi_id: str , db: Session, output_path: str):
 def approve_proforma_invoice(db:Session, pi_id:str , approver:str):
     return ProformaInvoiceRepo.update_pi_status(db, pi_id, "approved", approver)
 
+def get_all_proforma_invoice(db:Session):
+    return ProformaInvoiceRepo.get_all(db)
 
 def reject_proforma_invoice(db:Session, pi_id:str):
     return ProformaInvoiceRepo.update_pi_status(db, pi_id, "rejected")

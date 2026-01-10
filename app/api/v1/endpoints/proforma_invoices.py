@@ -3,13 +3,12 @@ from fastapi.responses import FileResponse
 import os
 
 from sqlalchemy.orm import Session
-from app.services.proforma_invoice_service import create_proforma_invoice, approve_proforma_invoice, reject_proforma_invoice
+from app.services.proforma_invoice_service import create_proforma_invoice, approve_proforma_invoice, reject_proforma_invoice , get_all_proforma_invoice
 from app.api.deps import get_db
 from app.schemas.proforma_invoice import CreateProformaInvoice, ApproveProformaInvoice
 from app.api.deps import get_current_user
 from app.models.user import User
 from app.services.proforma_invoice_service import generate_pdf
-
 router = APIRouter()
 
 @router.post("/proforma_invoices", response_model=CreateProformaInvoice)
@@ -32,3 +31,7 @@ def generate_pdf_endpoint(pi_id: str, db: Session = Depends(get_db), current_use
     file_path = os.path.join(pdf_dir, f"invoice_{pi_id}.pdf")
     generate_pdf(pi_id, db, file_path)
     return FileResponse(file_path, media_type="application/pdf", filename=f"invoice_{pi_id}.pdf")
+
+@router.get("/proforma_invoices")
+def get_all_proforma_invoice_endpoint(db:Session = Depends(get_db) , current_user: User = Depends(get_current_user)):
+    return get_all_proforma_invoice(db)
