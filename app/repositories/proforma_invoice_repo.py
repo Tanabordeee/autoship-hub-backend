@@ -3,9 +3,10 @@ from app.models.proforma_invoice import ProformaInvoice
 from app.models.proforma_invoice import PiItem
 from app.models.transaction import Transaction
 from app.schemas.proforma_invoice import CreateProformaInvoice
+from app.models.customer import Customer
 class ProformaInvoiceRepo:
-    def get_by_id(db:Session, pi_id:int):
-        return db.query(ProformaInvoice).filter(ProformaInvoice.id == pi_id).first()
+    def get_by_id(db:Session, pi_id:str):
+        return db.query(ProformaInvoice).filter(ProformaInvoice.pi_id == pi_id).first()
     def create(db:Session, payload:CreateProformaInvoice , user_id:int):
         transaction = Transaction(
             status = "pending",
@@ -13,6 +14,14 @@ class ProformaInvoiceRepo:
         )
         db.add(transaction)
         db.flush()
+        lines = [line.strip() for line in payload.consignee_name.splitlines()]
+        customer = Customer(
+            customer_name = lines[0] if lines else "",
+            customer_location = "\n".join(lines[1:]) if len(lines) > 1 else ""
+        )
+        db.add(customer)
+        db.flush()
+
         pi = ProformaInvoice(
             pi_id = payload.pi_id,
             date = payload.date,
@@ -29,28 +38,37 @@ class ProformaInvoiceRepo:
             total_price = payload.total_price,
             pi_approver = payload.pi_approver,
             user_id = user_id,
-            transaction_id = transaction.id
+            transaction_id = transaction.id,
+            customer_id = customer.id
         )
         db.add(pi)
         db.flush()
-        pi_items = []
-        for item in payload.items:
+        item_map = {}
+        # First pass: Create all items
+        for item_data in payload.items:
             pi_item = PiItem(
-                description = item.description,
-                item_no = item.item_no,
-                unit = item.unit,
-                unit_price = item.unit_price,
-                amount_in_usd = item.amount_in_usd,
-                pi_id = pi.id,
-                parent_items = item.parent_items
+                description = item_data.description,
+                item_no = item_data.item_no,
+                unit = item_data.unit,
+                unit_price = item_data.unit_price,
+                amount_in_usd = item_data.amount_in_usd,
+                pi_id = pi.id
             )
-            pi_items.append(pi_item)
-        db.add_all(pi_items)
+            item_map[item_data.item_no] = pi_item
+
+        # Second pass: Link parents and add to session
+        for item_data in payload.items:
+            if item_data.parent_items:
+                parent_item = item_map.get(item_data.parent_items)
+                if parent_item:
+                    item_map[item_data.item_no].parent = parent_item
+            db.add(item_map[item_data.item_no])
+
         db.commit()
         db.refresh(pi)
         return pi
-    def update_pi_status(db:Session , pi_id:int , status:str, approver:str=None):
-        pi = db.query(ProformaInvoice).filter(ProformaInvoice.id == pi_id).first()
+    def update_pi_status(db:Session , pi_id:str , status:str, approver:str=None):
+        pi = db.query(ProformaInvoice).filter(ProformaInvoice.pi_id == pi_id).first()
         if not pi:
             raise BaseException("Proforma Invoice not found")
         if approver :

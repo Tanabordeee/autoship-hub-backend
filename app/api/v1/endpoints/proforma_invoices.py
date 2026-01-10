@@ -17,15 +17,15 @@ def create_proforma_invoice_endpoint(payload: CreateProformaInvoice, db: Session
     return create_proforma_invoice(db, payload, current_user.id)
 
 @router.post("/proforma_invoices/approve/{pi_id}")
-def approve_proforma_invoice_endpoint(pi_id: int, payload: ApproveProformaInvoice, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def approve_proforma_invoice_endpoint(pi_id: str, payload: ApproveProformaInvoice, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     return approve_proforma_invoice(db, pi_id, payload.approver)
 
 @router.post("/proforma_invoices/reject/{pi_id}")
-def reject_proforma_invoice_endpoint(pi_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def reject_proforma_invoice_endpoint(pi_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     return reject_proforma_invoice(db, pi_id)
 
 @router.get("/proforma_invoices/{pi_id}/pdf")
-def generate_pdf_endpoint(pi_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def generate_pdf_endpoint(pi_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     pdf_dir = "E:\\job\\autoship-hub-server\\app\\pdf"
     if not os.path.exists(pdf_dir):
         os.makedirs(pdf_dir)

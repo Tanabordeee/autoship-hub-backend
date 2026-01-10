@@ -8,7 +8,7 @@ def create_proforma_invoice(db:Session, payload:CreateProformaInvoice , user_id:
     return ProformaInvoiceRepo.create(db, payload, user_id)
 
 
-def generate_pdf(pi_id: int , db: Session, output_path: str):
+def generate_pdf(pi_id: str , db: Session, output_path: str):
     pi = ProformaInvoiceRepo.get_by_id(db, pi_id)
     if not pi:
         raise Exception("Proforma Invoice not found")
@@ -20,7 +20,6 @@ def generate_pdf(pi_id: int , db: Session, output_path: str):
     
     env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dir))
     template = env.get_template(template_file)
-    
     # Render HTML
     html_out = template.render(invoice=pi)
     
@@ -28,9 +27,9 @@ def generate_pdf(pi_id: int , db: Session, output_path: str):
     HTML(string=html_out).write_pdf(output_path)
     return output_path
 
-def approve_proforma_invoice(db:Session, pi_id:int , approver:str):
+def approve_proforma_invoice(db:Session, pi_id:str , approver:str):
     return ProformaInvoiceRepo.update_pi_status(db, pi_id, "approved", approver)
 
 
-def reject_proforma_invoice(db:Session, pi_id:int):
+def reject_proforma_invoice(db:Session, pi_id:str):
     return ProformaInvoiceRepo.update_pi_status(db, pi_id, "rejected")

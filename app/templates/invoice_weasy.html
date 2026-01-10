@@ -223,7 +223,7 @@
                 </td>
 
                 <td style="vertical-align:top; padding:4px; border-bottom: none;">
-                    <div class="font-bold">PRO-FORMA INVOICE : {{ invoice.id }}</div>
+                    <div class="font-bold">PRO-FORMA INVOICE : {{ invoice.pi_id }}</div>
                     <div class="font-bold">DATE : {{ invoice.date }}</div>
                     <div class="font-bold">PAYMENT TERMS : {{ invoice.payment_term }}</div>
                     <div class="font-bold">PAP PROSPERITY CO LTD</div>
@@ -261,8 +261,10 @@
                     <td></td>
                 </tr>
 
-                {% for base in range(0, invoice.items|length, 5) %}
-                {% set group = invoice.items %}
+                {% set sorted_items = invoice.items|sort(attribute='item_no') %}
+                {% for base in range(0, sorted_items|length, 6) %}
+                {% set group = sorted_items %}
+
                 <tr class="no-border-row">
                     <td>
                         <div class="grid-desc">{{ base + 1 }}</div>
@@ -305,31 +307,42 @@
                         <div class="grid-desc">{{ base + 4 }}</div>
                         <div class="grid-content">FREIGHT</div>
                     </td>
-                    <td class="text-center">{{ "{:,.2f}".format(group[base + 3].unit_price) if group[base+3] is defined
-                        and group[base+3].unit_price else "" }}</td>
-                    <td class="text-center">{{ group[base + 3].unit if group[base+3] is defined else "" }}</td>
-                    <td class="text-center">{{ "{:,.2f}".format(group[base + 3].amount_in_usd) if group[base+3] is
-                        defined and group[base+3].amount_in_usd else "" }}
+                    <td class="text-center">{{ "{:,.2f}".format(group[base + 4].unit_price) if group[base+4] is defined
+                        and group[base+4].unit_price else "" }}</td>
+                    <td class="text-center">{{ group[base + 4].unit if group[base+4] is defined else "" }}</td>
+                    <td class="text-center">{{ "{:,.2f}".format(group[base + 4].amount_in_usd) if group[base+4] is
+                        defined and group[base+4].amount_in_usd else "" }}
                     </td>
                 </tr>
                 <tr class="no-border-row">
                     <td>
                         <div class="grid-desc">{{ base + 5 }}</div>
-                        <div class="grid-content">INSURANCE & H.S. CODE {{ group[base + 4].description if group[base+4]
-                            is defined else "" }}</div>
+                        <div class="grid-content">INSURANCE</div>
                     </td>
-                    <td class="text-center">{{ "{:,.2f}".format(group[base + 4].unit_price) if group[base+4] is defined
-                        and group[base+4].unit_price else "" }}
+                    <td class="text-center">{{ "{:,.2f}".format(group[base + 5].unit_price) if group[base+5] is defined
+                        and group[base+5].unit_price else "" }}
                     </td>
-                    <td class="text-center">{{ group[base + 4].unit if group[base+4] is defined else "" }}</td>
-                    <td class="text-center">{{ "{:,.2f}".format(group[base + 4].amount_in_usd) if group[base+4] is
-                        defined and group[base+4].amount_in_usd else "" }}</td>
+                    <td class="text-center">{{ group[base + 5].unit if group[base+5] is defined else "" }}</td>
+                    <td class="text-center">{{ "{:,.2f}".format(group[base + 5].amount_in_usd) if group[base+5] is
+                        defined and group[base+5].amount_in_usd else "" }}</td>
+                </tr>
+                <tr class="no-border-row">
+                    <td>
+                        <div class="grid-desc">{{ base + 6 }}</div>
+                        <div class="grid-content">H.S. CODE : {{ group[base + 3].description if group[base + 3] is
+                            defined else "" }}</div>
+                    </td>
+
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
                 </tr>
                 {% endfor %}
 
+
                 <tr class="no-border-row">
                     <td>
-                        <div class="mt-60" style="margin-left: 20px;">
+                        <div class="mt-60" style="margin-left: 20px; margin-top: 200px;">
                             <p class="underline font-bold" style="margin-bottom: 4px;">TERM & CONDITION</p>
                             <div class="whitespace-pre-wrap break-words">{{ invoice.term_condition }}</div>
                         </div>
@@ -375,7 +388,7 @@
                         <p style="margin: 2px 0; font-size: 6pt;">ON BEHALF OF CUSTOMER</p>
                         <div style="height: 44px;"></div>
                         <hr style="border: none; border-top: 1px solid black; margin: 4px 10px;">
-                        <p style="margin: 2px 0; font-size: 6pt;">DOOKDIK CUSTOMER</p>
+                        <p style="margin: 2px 0; font-size: 6pt;">{{invoice.customer.customer_name}}</p>
                     </td>
                 </tr>
             </tbody>
