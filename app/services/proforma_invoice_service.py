@@ -27,3 +27,10 @@ def generate_pdf(pi_id: int , db: Session, output_path: str):
     # Convert to PDF using WeasyPrint
     HTML(string=html_out).write_pdf(output_path)
     return output_path
+
+def approve_proforma_invoice(db:Session, pi_id:int , approver:str):
+    return ProformaInvoiceRepo.update_pi_status(db, pi_id, "approved", approver)
+
+
+def reject_proforma_invoice(db:Session, pi_id:int):
+    return ProformaInvoiceRepo.update_pi_status(db, pi_id, "rejected")
