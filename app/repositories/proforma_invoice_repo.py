@@ -49,3 +49,14 @@ class ProformaInvoiceRepo:
         db.commit()
         db.refresh(pi)
         return pi
+    def update_pi_status(db:Session , pi_id:int , status:str, approver:str=None):
+        pi = db.query(ProformaInvoice).filter(ProformaInvoice.id == pi_id).first()
+        if not pi:
+            raise BaseException("Proforma Invoice not found")
+        if approver :
+            pi.pi_approver = approver
+        pi.transaction.status = status
+        db.commit()
+        db.refresh(pi)  
+        db.refresh(pi.transaction)
+        return pi

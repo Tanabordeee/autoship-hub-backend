@@ -30,3 +30,6 @@ class CreateProformaInvoice(BaseModel):
     total_price: float
     pi_approver: str
     items: List[PiItemCreate]  
+
+class ApproveProformaInvoice(BaseModel):
+    approver: str
