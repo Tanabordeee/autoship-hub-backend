@@ -11,3 +11,4 @@ class User(Base):
     role = Column(String, nullable=False)
 
     proforma_invoices = relationship("ProformaInvoice", back_populates="user")
+    lcs = relationship("LC", back_populates="user", lazy="dynamic")

@@ -5,6 +5,13 @@ from fastapi.responses import JSONResponse
 from app.api.v1.router import api_router
 from fastapi.middleware.cors import CORSMiddleware
 
+# Import models to ensure SQLAlchemy can resolve relationships
+from app.models.user import User
+from app.models.lc import LC
+from app.models.proforma_invoice import ProformaInvoice, PiItem
+from app.models.customer import Customer
+from app.models.transaction import Transaction
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,

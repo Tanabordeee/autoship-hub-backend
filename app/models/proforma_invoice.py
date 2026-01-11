@@ -32,11 +32,13 @@ class ProformaInvoice(Base):
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     transaction_id = Column(BigInteger, ForeignKey("transactions.id", ondelete="CASCADE"), nullable=False)
     customer_id = Column(BigInteger, ForeignKey("customers.id", ondelete="CASCADE"), nullable=True)
+    lc_id = Column(BigInteger, ForeignKey("lc.id", ondelete="SET NULL"), nullable=True)
     # Relationships
     user = relationship("User", back_populates="proforma_invoices")
     items = relationship("PiItem", back_populates="proforma_invoice", cascade="all, delete-orphan", order_by="PiItem.item_no")
     customer = relationship("Customer", back_populates="proforma_invoices")
     transaction = relationship("Transaction", back_populates="proforma_invoices")
+    lc = relationship("LC", back_populates="proforma_invoices")
 
 
 class PiItem(Base):
