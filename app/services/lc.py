@@ -4,6 +4,7 @@ import os
 import base64
 import requests
 import io
+import json
 from pdf2image import convert_from_path
 from app.schemas.lc import LCCreate
 from app.repositories.lc_repo import LCRepo
@@ -38,8 +39,185 @@ def ocr_image(image, model: str):
         print(f"Status Code: {r.status_code}")
         print(f"Raw Response: {r.text}")
         return "[Error: Failed to parse response]"
+def create_lc(db:Session , payload: LCCreate , user_id:int , pi_id:list[int]):
+    # Check if LC with same lc_no already exists
+    existing_lc = LCRepo.get_latest_version_by_lc_no(db, payload.lc_no)
+    # print(existing_lc.__dict__)
+    if existing_lc:
+        # Increment version
+        new_version = (existing_lc.versions or 0) + 1
+        
+        # Merge None fields from new payload with existing LC data
+        payload_dict = payload.model_dump()
+        
+        for field, value in payload_dict.items():
+            if value is None and hasattr(existing_lc, field):
+                # If new value is None, use the old value
+                old_value = getattr(existing_lc, field)
+                setattr(payload, field, old_value)
+        
+        # Set the new version number
+        payload.versions = new_version
+    else:
+        # First version
+        payload.versions = 1
+    
+    return LCRepo.create(db , payload , user_id , pi_id)
+def clean_text_common(text: str) -> str:
+    text = re.sub(
+        r"THIS CREDIT IS VALID ONLY WHEN USED.*?(?=\n)|"
+        r"NOTIFICATION OF LC ADVICE.*?(?=\n)|"
+        r"PAGE \d+/.*?(?=\n)|"
+        r"\[Page \d+\].*?(?=\n)|"
+        r"^standard chartered\s*$|"
+        r"^COMMERCIAL BANK OF CEYLON PLC\s*$|"
+        r"^SH REL.*?(?=\n)|"
+        r".*?ARR \.DATE=.*?(?=\n)|"
+        r".*?ARR \.TIME=.*?(?=\n)|"
+        r".*?REF \.NO\..*?(?=\n)|"
+        r"^ARR .*?(?=\n)|"
+        r"^REF .*?(?=\n)|"
+        r"^DEAL=.*?(?=\n)|"
+        r"^SENDER:.*?(?=\n)|"
+        r".*?TEST AGREED SENDER.*?(?=\n)|"
+        r"^Tel .*?(?=\n)|"
+        r"^Fax .*?(?=\n)|"
+        r"^Registration .*?(?=\n)|"
+        r"^โทรศัพท์ .*?(?=\n)|"
+        r"^โทรสาร .*?(?=\n)|"
+        r"^ทะเบียนเลขที่ .*?(?=\n)|"
+        r"^ธนาคารสแตนดาร์ดชาร์เตอร์ด.*?(?=\n)|"
+        r"^140 ถนน.*?(?=\n)|"
+        r"^140 Wireless.*?(?=\n)|"
+        r"^ITSD-14.*?(?=\n)|"
+        r"^\d+\s+TEST AGREED.*?(?=\n)|"
+        r"^\d+\s*$|"
+        r"^COLOMBO\s*$|"
+        r"^Bangkok \d+.*?(?=\n)|"
+        r"Standard Chartered Bank.*?(?=\n)|"
+        r"TEST AGREED COMMERCIAL BANK OF CEYLON PLC COLOMBO.*?(?=\n)|"
+        r"ICC PUBLICATION NO\.600 IS EXCLUDED.*?(?=\n)|"
+        r"ARTICLE\s+\d+.*?UCP.*?(?=\n)|",
+        "",
+        text,
+        flags=re.IGNORECASE | re.MULTILINE
+    )
 
-def extract_lc(db: Session, file: UploadFile, user_id: int):
+    text = re.sub(r"\n\s*\n+", "\n", text).strip()
+    return text
+def clean_45a_text(text: str) -> str:
+    # ตัดทุกอย่างหลัง noise marker (STOP WORDS)
+    stop_patterns = [
+        r"THIS CREDIT IS VALID ONLY WHEN USED",
+        r"NOTIFICATION OF LC ADVICE",
+        r"PAGE\s+\d+/",
+        r"\[Page\s*\d+\]",
+        r"Standard Chartered Bank",
+        r"ธนาคารสแตนดาร์ดชาร์เตอร์ด",
+        r"COMMERCIAL BANK OF CEYLON",
+        r"COMERCIAL BANK OF CEYLON",
+        r"SH REL\. DATE",
+        r"SENDER:",
+    ]
+
+    for p in stop_patterns:
+        text = re.split(p, text, flags=re.IGNORECASE)[0]
+
+    # cleanup whitespace
+    text = re.sub(r"\n\s*\n+", "\n", text).strip()
+    return text
+def extract_document_require_46A(full_text: str):
+    patterns = {
+        1: r"46A\s*:\s*DOCUMENTS\s*REQUIRED\s*(.+?)(?=\s*2\))",
+        2: r"2\)\s*(.+?)(?=\s*3\))",
+        3: r"3\)\s*(.+?)(?=\s*4\))",
+        4: r"4\)\s*(.+?)(?=\s*5\))",
+        5: r"5\)\s*(.+?)(?=\s*6\))",
+        6: r"6\)\s*(.+?)(?=\s*7\))",
+        7: r"7\)\s*(.+?)(?=\s*:?\s*47A\s*:|$)",
+    }
+
+    doc_types = {
+        1: "INVOICE",
+        2: "BILL_OF_LADING",
+        3: "INSURANCE",
+        4: "CERTIFICATE_OF_REGISTRATION",
+        5: "TRANSLATION",
+        6: "INSPECTION_CERTIFICATE",
+        7: "INSPECTION_CERTIFICATE",
+    }
+
+    items = []
+
+    for item_no in range(1, 8):
+        match = re.search(patterns[item_no], full_text, re.DOTALL | re.IGNORECASE)
+        if not match:
+            continue
+
+        text = match.group(1).strip()
+
+        # =================================================
+        # CLEANUP LOGIC (ใช้ชุดเดิม 100% กับทุก item)
+        # =================================================
+        text = clean_text_common(text)
+
+        text = re.sub(r"\n\s*\n+", "\n", text).strip()
+
+        item = {
+            "item_no": item_no,
+            "doc_type": doc_types[item_no],
+            "conditions": text
+        }
+
+        # =================================================
+        # SPECIAL FORMAT : ITEM 6
+        # =================================================
+        if item_no == 6:
+
+            annexures = []
+
+            annexure_block_match = re.search(
+                r"ORIGINAL\s+CERTIFICATE\s+OF\s+PRE\s+SHIPMENT\s+INSPECTION.*?"
+                r"THIS\s+REPORT\s+SHOULD\s+HAVE\s+THE\s+FOLLOWING\s+ANNEXTURE\.(.+?)"
+                r"(?=\n?\s*THE\s+STAMP\s+OF|\n?\s*\d+\)|$)",
+                item["conditions"],
+                flags=re.DOTALL | re.IGNORECASE
+            )
+
+            if annexure_block_match:
+                annexure_block = annexure_block_match.group(1)
+
+                annexure_matches = re.findall(
+                    r"\(([A-C])\)\s*(.+?)(?=\n?\([A-C]\)|$)",
+                    annexure_block,
+                    flags=re.DOTALL | re.IGNORECASE
+                )
+
+                annexures = [
+                    {
+                        "code": code.upper(),
+                        "text": re.sub(r"\n\s*\n+", "\n", body).strip()
+                    }
+                    for code, body in annexure_matches
+                ]
+
+            if annexures:
+                item["annexures"] = annexures
+
+            # ลบ annexure block ออกจาก conditions (ให้เหลือแต่ requirement หลัก)
+            item["conditions"] = re.sub(
+                r"THIS\s+REPORT\s+SHOULD\s+HAVE\s+THE\s+FOLLOWING\s+ANNEXTURE\..*",
+                "",
+                item["conditions"],
+                flags=re.DOTALL | re.IGNORECASE
+            ).strip()
+
+        items.append(item)
+
+    return {
+        "items": items
+    }
+def extract_lc(db: Session, file: UploadFile, user_id: int ):
     """
     Extract LC data from PDF file and return as JSON
     """
@@ -93,90 +271,25 @@ def extract_lc(db: Session, file: UploadFile, user_id: int):
     }
     
     # Extract description of goods
-    description_match = re.search(r"45A\s*:\s*DESCRIPTION\s*OF\s*GOODS\s*AND/OR\s*SERVICES\s*(.+?)(?=\s*:|$)", full_text, re.DOTALL|re.IGNORECASE)
-    
-    # Extract documents required
-    docs_46a = {
-        "1": re.search(r"46A\s*:\s*DOCUMENTS\s*REQUIRED\s*(.+?)(?=\s*\n?\s*2\))", full_text, re.DOTALL|re.IGNORECASE),
-        "2": re.search(r"2\)\s*(FULL\s*SET\s*OF.+?)(?=\s*\n?\s*3\))", full_text, re.DOTALL|re.IGNORECASE),
-        "3": re.search(r"3\)\s*(.+?)(?=\s*4\))", full_text, re.DOTALL|re.IGNORECASE),
-        "4": re.search(r"4\)\s*(.+?)(?=\s*5\))", full_text, re.DOTALL|re.IGNORECASE),
-        "5": re.search(r"5\)\s*(.+?)(?=\s*6\))", full_text, re.DOTALL|re.IGNORECASE),
-        "6": re.search(r"6\)\s*(.+?)(?=\s*7\))", full_text, re.DOTALL|re.IGNORECASE),
-        "7": re.search(r"7\)\s*(.+?)(?=\s*:|$)", full_text, re.DOTALL|re.IGNORECASE),
-    }
-    
-    # Build document_require_46a as JSON with cleanup for item 3
-    document_require_46a = {}
-    for key, match in docs_46a.items():
-        if match:
-            item_text = match.group(1).strip()
-            
-            # Special cleanup for item 3 (insurance documents)
-            if key == "3":
-                item_text = re.sub(
-                    r"THIS CREDIT IS VALID ONLY WHEN USED.*?(?=\n)|"
-                    r"NOTIFICATION OF LC ADVICE.*?(?=\n)|"
-                    r"PAGE \d+/.*?(?=\n)|"
-                    r"\[Page \d+\].*?(?=\n)|"
-                    r"^standard chartered\s*$|"
-                    r"^COMMERCIAL BANK OF CEYLON PLC\s*$|"
-                    r"^SH REL.*?(?=\n)|"
-                    r".*?ARR \.DATE=.*?(?=\n)|"
-                    r".*?ARR \.TIME=.*?(?=\n)|"
-                    r".*?REF \.NO\..*?(?=\n)|"
-                    r"^ARR .*?(?=\n)|"
-                    r"^REF .*?(?=\n)|"
-                    r"^DEAL=.*?(?=\n)|"
-                    r"^SENDER:.*?(?=\n)|"
-                    r".*?TEST AGREED SENDER.*?(?=\n)|"
-                    r"^Tel .*?(?=\n)|"
-                    r"^Fax .*?(?=\n)|"
-                    r"^Registration .*?(?=\n)|"
-                    r"^โทรศัพท์ .*?(?=\n)|"
-                    r"^โทรสาร .*?(?=\n)|"
-                    r"^ทะเบียนเลขที่ .*?(?=\n)|"
-                    r"^ธนาคารสแตนดาร์ดชาร์เตอร์ด.*?(?=\n)|"
-                    r"^140 ถนน.*?(?=\n)|"
-                    r"^140 Wireless.*?(?=\n)|"
-                    r"^ITSD-14.*?(?=\n)|"
-                    r"^\d+\s+TEST AGREED.*?(?=\n)|"
-                    r"^\d+\s*$|"
-                    r"^COLOMBO\s*$|"
-                    r"^Bangkok \d+.*?(?=\n)|"
-                    r"Standard Chartered Bank.*?(?=\n)",
-                    "",
-                    item_text,
-                    flags=re.IGNORECASE | re.MULTILINE
-                )
-                # Remove duplicate newlines
-                item_text = re.sub(r'\n\s*\n+', '\n', item_text).strip()
-            
-            document_require_46a[key] = item_text
-    
-    # Extract annexures from item 6 if available
-    if "6" in document_require_46a:
-        annexures = re.findall(r"(\([A-Z]+\))\s*(.+?)(?=(\([A-Z]+\)|$))", document_require_46a["6"], re.DOTALL)
-        if annexures:
-            document_require_46a["6_annexures"] = [{"label": a[0], "text": a[1].strip()} for a in annexures]
-    
+    description_match = re.search(r"45A\s*:\s*DESCRIPTION\s*OF\s*GOODS\s*AND/OR\s*SERVICES\s*(.+?)(?=\s*\n?\s*\d{2}[A-Z]?\s*:|$)", full_text, re.DOTALL|re.IGNORECASE)
+
     # Build description_of_good_45a_45b as JSON with items
     description_of_good_45a_45b = None
     if description_match:
-        description_text = description_match.group(1).strip()
-        
+        raw_description_text = description_match.group(1).strip()
+        description_text = clean_45a_text(raw_description_text)
         # Extract individual items (UNIT)
-        items = re.findall(
-            r"(\d{1,2}\s*UNIT.*?(?:H\. ?S\. ?CODE\s*\.\s*\d+\.\d+\.\d+|UNIT PRICE\s*:\s*USD[\d,]+|$))",
+        items = re.split(
+            r"(?=\b\d{1,2}\s+UNIT\b)",
             description_text,
-            re.DOTALL | re.IGNORECASE
+            flags=re.IGNORECASE
         )
-        
+        items = [i.strip() for i in items if i.strip()]
         description_of_good_45a_45b = {
             "full_text": description_text,
-            "items": [item.strip() for item in items] if items else []
+            "items": [{"item_no": idx+1 , "description": item.strip()} for idx , item in enumerate(items)] if items else []
         }
-
+    document_require_46a = extract_document_require_46A(full_text)
     # Build response JSON
     response_data = {
         "beneficiary_59": extracted_data["beneficiary_59"].group(1).strip() if extracted_data["beneficiary_59"] else None,
@@ -198,7 +311,10 @@ def extract_lc(db: Session, file: UploadFile, user_id: int):
         "port_of_loading_of_departure_44e": extracted_data["port_of_loading_of_departure_44e"].group(1).strip() if extracted_data["port_of_loading_of_departure_44e"] else None,
         "latest_date_of_shipment_44c": extracted_data["latest_date_of_shipment_44c"].group(1).strip() if extracted_data["latest_date_of_shipment_44c"] else None,
         "charges_71d": extracted_data["charges_71d"].group(1).strip() if extracted_data["charges_71d"] else None,
-        "additional_conditions_47a": extracted_data["additional_conditions_47a"].group(1).strip() if extracted_data["additional_conditions_47a"] else None,
+        "additional_conditions_47a": (
+            clean_text_common(extracted_data["additional_conditions_47a"].group(1))
+            if extracted_data["additional_conditions_47a"] else None
+        ),
         "period_for_presentation_in_days_48": extracted_data["period_for_presentation_in_days_48"].group(1).strip() if extracted_data["period_for_presentation_in_days_48"] else None,
         "confirmation_instructions_49": extracted_data["confirmation_instructions_49"].group(1).strip() if extracted_data["confirmation_instructions_49"] else None,
         "instructions_to_the_paying_accepting_negotiating_bank_78": extracted_data["instructions_to_the_paying_accepting_negotiating_bank_78"].group(1).strip() if extracted_data["instructions_to_the_paying_accepting_negotiating_bank_78"] else None,
