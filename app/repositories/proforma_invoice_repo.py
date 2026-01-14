@@ -14,7 +14,8 @@ class ProformaInvoiceRepo:
         Customer.customer_name,
         Customer.customer_location,
         ProformaInvoice.total_price,
-        Transaction.status
+        Transaction.status,
+        Transaction.id
         )\
         .join(Customer)\
         .join(Transaction)\
@@ -27,7 +28,8 @@ class ProformaInvoiceRepo:
                 "customer": r.customer_name,
                 "location": r.customer_location,
                 "total": float(r.total_price),
-                "status": r.status
+                "status": r.status,
+                "transaction_id":r.id
             }
             for r in rows
         ]
