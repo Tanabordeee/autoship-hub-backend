@@ -3,7 +3,10 @@ from app.models.lc import LC
 from app.models.proforma_invoice import ProformaInvoice
 from app.schemas.lc import LCBase
 class LCRepo:
-    def create(db:Session, payload:LCBase , user_id:int , pi_id:list[int]):
+    def get_latest_version_by_lc_no(db:Session, lc_no:str):
+        """Get the latest version of LC by lc_no"""
+        return db.query(LC).filter(LC.lc_no == lc_no).order_by(LC.versions.desc()).first()
+    def create(db:Session, payload:LCBase , user_id:int , pi_id:list[int] = []):
         lc = LC(
             beneficiary_59 = payload.beneficiary_59,
             applicant_50 = payload.applicant_50,
