@@ -4,6 +4,8 @@ from app.models.proforma_invoice import PiItem
 from app.models.transaction import Transaction
 from app.schemas.proforma_invoice import CreateProformaInvoice
 from app.models.customer import Customer
+from app.repositories.transaction_repo import TransactionRepo
+from app.schemas.transaction import TransactionCreate
 class ProformaInvoiceRepo:
     def get_by_id(db:Session, pi_id:str):
         return db.query(ProformaInvoice).options(joinedload(ProformaInvoice.transaction)).filter(ProformaInvoice.pi_id == pi_id).first()
@@ -35,12 +37,7 @@ class ProformaInvoiceRepo:
         ]
 
     def create(db:Session, payload:CreateProformaInvoice , user_id:int):
-        transaction = Transaction(
-            status = "pending",
-            current_process = "proforma_invoice",
-        )
-        db.add(transaction)
-        db.flush()
+        transaction = TransactionRepo.create(db, TransactionCreate(status="pending", current_process="proforma_invoice"))
         lines = [line.strip() for line in payload.consignee_name.splitlines()]
         customer = Customer(
             customer_name = lines[0] if lines else "",
