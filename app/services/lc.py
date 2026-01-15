@@ -8,6 +8,9 @@ import json
 from pdf2image import convert_from_path
 from app.schemas.lc import LCCreate
 from app.repositories.lc_repo import LCRepo
+from app.repositories.transaction_repo import TransactionRepo
+from app.schemas.transaction import TransactionUpdate
+from app.schemas.transaction import TransactionCreate
 import re
 def ocr_image(image, model: str):
     """Helper function to OCR a single image"""
@@ -217,7 +220,7 @@ def extract_document_require_46A(full_text: str):
     return {
         "items": items
     }
-def extract_lc(db: Session, file: UploadFile, user_id: int ):
+def extract_lc(db: Session, file: UploadFile, user_id: int , transaction_id:int):
     """
     Extract LC data from PDF file and return as JSON
     """
@@ -320,5 +323,5 @@ def extract_lc(db: Session, file: UploadFile, user_id: int ):
         "instructions_to_the_paying_accepting_negotiating_bank_78": extracted_data["instructions_to_the_paying_accepting_negotiating_bank_78"].group(1).strip() if extracted_data["instructions_to_the_paying_accepting_negotiating_bank_78"] else None,
         "pdf_path": file_path,
     }
-    
+    TransactionRepo.create(db, TransactionCreate(status="pending", current_process="lc"))
     return response_data
