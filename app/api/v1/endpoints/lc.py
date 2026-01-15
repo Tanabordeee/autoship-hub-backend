@@ -1,4 +1,4 @@
-from fastapi import APIRouter, File, UploadFile, Depends , Form
+from fastapi import APIRouter, File, UploadFile, Depends , Form, Body
 from sqlalchemy.orm import Session
 from app.services.lc import extract_lc
 from app.api.deps import get_db
@@ -24,9 +24,9 @@ def extract_lc_endpoint(
 
 @router.post("/create-lc")
 def create_lc_endpoint(
-    payload:LCCreate,
-    pi_id:list[int],
-    db:Session = Depends(get_db),
-    current_user:User = Depends(get_current_user)
+    payload: LCCreate,
+    pi_id: list[int] = Body(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     return create_lc(db , payload , current_user.id , pi_id)
