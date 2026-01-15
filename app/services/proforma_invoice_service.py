@@ -1,6 +1,8 @@
 from sqlalchemy.orm import Session
 from app.repositories.proforma_invoice_repo import ProformaInvoiceRepo
 from app.schemas.proforma_invoice import CreateProformaInvoice
+from app.repositories.transaction_repo import TransactionRepo
+from app.schemas.transaction import TransactionUpdate
 import os
 import jinja2
 from weasyprint import HTML
