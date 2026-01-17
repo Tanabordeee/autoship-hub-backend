@@ -323,5 +323,5 @@ def extract_lc(db: Session, file: UploadFile, user_id: int , transaction_id:int)
         "instructions_to_the_paying_accepting_negotiating_bank_78": extracted_data["instructions_to_the_paying_accepting_negotiating_bank_78"].group(1).strip() if extracted_data["instructions_to_the_paying_accepting_negotiating_bank_78"] else None,
         "pdf_path": file_path,
     }
-    TransactionRepo.create(db, TransactionCreate(status="pending", current_process="lc"))
+    TransactionRepo.update(db, transaction_id , TransactionUpdate(status="pending", current_process="lc"))
     return response_data
