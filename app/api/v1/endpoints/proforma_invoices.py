@@ -35,3 +35,7 @@ def generate_pdf_endpoint(pi_id: str, db: Session = Depends(get_db), current_use
 @router.get("/proforma_invoices")
 def get_all_proforma_invoice_endpoint(db:Session = Depends(get_db) , current_user: User = Depends(get_current_user)):
     return get_all_proforma_invoice(db)
+
+@router.get("/proforma_invoices/{pi_id}")
+def get_proforma_invoice_endpoint(pi_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    return get_proforma_invoice(db, pi_id)

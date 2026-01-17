@@ -37,3 +37,6 @@ def get_all_proforma_invoice(db:Session):
 
 def reject_proforma_invoice(db:Session, pi_id:str):
     return ProformaInvoiceRepo.update_pi_status(db, pi_id, "rejected")
+
+def get_proforma_invoice(db:Session, pi_id:str):
+    return ProformaInvoiceRepo.get_by_id(db, pi_id)
