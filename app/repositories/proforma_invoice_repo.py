@@ -9,6 +9,8 @@ from app.schemas.transaction import TransactionCreate
 class ProformaInvoiceRepo:
     def get_by_pi_id(db:Session, pi_id:str):
         return db.query(ProformaInvoice).options(joinedload(ProformaInvoice.transaction)).filter(ProformaInvoice.pi_id == pi_id).first()
+    def get_by_id(db:Session, id:int):
+        return db.query(ProformaInvoice).options(joinedload(ProformaInvoice.transaction)).options(joinedload(ProformaInvoice.items)).filter(ProformaInvoice.id == id).first()
     def get_all(db:Session):
         rows = db.query(
         ProformaInvoice.pi_id,
@@ -18,7 +20,8 @@ class ProformaInvoiceRepo:
         ProformaInvoice.total_price,
         Transaction.status,
         Transaction.id.label("transaction_id"),
-        ProformaInvoice.id.label("proforma_invoice_id")
+        ProformaInvoice.id.label("proforma_invoice_id"),
+        Transaction.current_process
         )\
         .join(Customer)\
         .join(Transaction)\
@@ -33,7 +36,8 @@ class ProformaInvoiceRepo:
                 "total": float(r.total_price),
                 "status": r.status,
                 "transaction_id":r.transaction_id,
-                "id":r.proforma_invoice_id
+                "id":r.proforma_invoice_id,
+                "current_process":r.current_process
             }
             for r in rows
         ]

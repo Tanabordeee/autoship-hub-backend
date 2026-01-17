@@ -40,3 +40,6 @@ def reject_proforma_invoice(db:Session, pi_id:str):
 
 def get_proforma_invoice_by_pi_id(db:Session, pi_id:str):
     return ProformaInvoiceRepo.get_by_pi_id(db, pi_id)
+
+def get_proforma_invoice_by_id(db:Session, id:int):
+    return ProformaInvoiceRepo.get_by_id(db, id)
