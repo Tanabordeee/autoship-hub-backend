@@ -9,5 +9,4 @@ class Transaction(Base):
     status = Column(Text, nullable=False)
     current_process = Column(Text, nullable=False)
     proforma_invoices = relationship("ProformaInvoice", back_populates="transaction", cascade="all, delete-orphan")
-
     

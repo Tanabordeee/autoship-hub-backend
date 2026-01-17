@@ -7,7 +7,7 @@ from app.models.customer import Customer
 from app.repositories.transaction_repo import TransactionRepo
 from app.schemas.transaction import TransactionCreate
 class ProformaInvoiceRepo:
-    def get_by_id(db:Session, pi_id:str):
+    def get_by_pi_id(db:Session, pi_id:str):
         return db.query(ProformaInvoice).options(joinedload(ProformaInvoice.transaction)).filter(ProformaInvoice.pi_id == pi_id).first()
     def get_all(db:Session):
         rows = db.query(

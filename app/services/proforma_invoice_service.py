@@ -11,7 +11,7 @@ def create_proforma_invoice(db:Session, payload:CreateProformaInvoice , user_id:
 
 
 def generate_pdf(pi_id: str , db: Session, output_path: str):
-    pi = ProformaInvoiceRepo.get_by_id(db, pi_id)
+    pi = ProformaInvoiceRepo.get_by_pi_id(db, pi_id)
     if not pi:
         raise Exception("Proforma Invoice not found")
 
@@ -38,5 +38,5 @@ def get_all_proforma_invoice(db:Session):
 def reject_proforma_invoice(db:Session, pi_id:str):
     return ProformaInvoiceRepo.update_pi_status(db, pi_id, "rejected")
 
-def get_proforma_invoice(db:Session, pi_id:str):
-    return ProformaInvoiceRepo.get_by_id(db, pi_id)
+def get_proforma_invoice_by_pi_id(db:Session, pi_id:str):
+    return ProformaInvoiceRepo.get_by_pi_id(db, pi_id)

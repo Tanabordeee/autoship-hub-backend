@@ -3,7 +3,7 @@ from fastapi.responses import FileResponse
 import os
 
 from sqlalchemy.orm import Session
-from app.services.proforma_invoice_service import create_proforma_invoice, approve_proforma_invoice, reject_proforma_invoice , get_all_proforma_invoice
+from app.services.proforma_invoice_service import create_proforma_invoice, approve_proforma_invoice, reject_proforma_invoice , get_all_proforma_invoice , get_proforma_invoice_by_pi_id
 from app.api.deps import get_db
 from app.schemas.proforma_invoice import CreateProformaInvoice, ApproveProformaInvoice
 from app.api.deps import get_current_user
@@ -37,5 +37,6 @@ def get_all_proforma_invoice_endpoint(db:Session = Depends(get_db) , current_use
     return get_all_proforma_invoice(db)
 
 @router.get("/proforma_invoices/{pi_id}")
-def get_proforma_invoice_endpoint(pi_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    return get_proforma_invoice(db, pi_id)
+def get_proforma_invoice_by_pi_id_endpoint(pi_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    return get_proforma_invoice_by_pi_id(db, pi_id)
+
