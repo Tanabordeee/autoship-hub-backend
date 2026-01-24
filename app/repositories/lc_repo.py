@@ -53,4 +53,5 @@ class LCRepo:
             pi.lc_id = lc.id
             db.commit()
         return lc
-    # def re_upload(db:Session , )
+    def get_by_id(db:Session , id:int):
+        return db.query(LC).filter(LC.id == id).first()
