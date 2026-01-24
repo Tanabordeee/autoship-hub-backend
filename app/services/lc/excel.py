@@ -12,7 +12,7 @@ def generate_excel(db: Session, id: int) -> str:
     wb = Workbook()
 
     # =========================
-    # Sheet 1 : LC HEADER
+    # Sheet 1 : LC_HEADER
     # =========================
     ws = wb.active
     ws.title = "LC_HEADER"
@@ -23,20 +23,33 @@ def generate_excel(db: Session, id: int) -> str:
         ("Date of Issue", lc.date_of_issue_31c),
         ("Applicant", lc.applicant_50),
         ("Beneficiary", lc.beneficiary_59),
+        ("Latest Shipment Date", lc.latest_date_of_shipment_44c),
+        ("Sequence of Total", lc.sequence_of_total_27),
+        ("Form of Documentary Credit", lc.form_of_documentary_credit_40a),
+        ("Applicable Rules", lc.applicable_rules_40e),
+        ("Date and Place of Expiry", lc.date_and_place_of_expiry_31d),
         ("Currency / Amount", lc.currency_code_32b),
+        ("Available With", lc.available_with_41d),
+        ("Partial Shipments", lc.partial_shipments_43p),
+        ("Transhipment", lc.transhipment_43t),
         ("Port of Loading", lc.port_of_loading_of_departure_44e),
         ("Port of Discharge", lc.port_of_discharge_44f),
-        ("Latest Shipment Date", lc.latest_date_of_shipment_44c),
-        ("Created At", lc.created_at.replace(tzinfo=None) if lc.created_at else None),
+        ("Charges", lc.charges_71d),
+        ("Additional Conditions", lc.additional_conditions_47a),
+        ("Period for Presentation in Days", lc.period_for_presentation_in_days_48),
+        ("Confirmation Instructions", lc.confirmation_instructions_49),
+        ("Instructions to the Paying Accepting Negotiating Bank", lc.instructions_to_the_paying_accepting_negotiating_bank_78),
     ]
 
     for row, (key, value) in enumerate(headers, start=1):
         ws.cell(row=row, column=1, value=key).font = Font(bold=True)
         ws.cell(row=row, column=2, value=value)
-        ws.cell(row=row, column=2).alignment = Alignment(wrap_text=True)
+        ws.cell(row=row, column=2).alignment = Alignment(
+            wrap_text=True, vertical="top"
+        )
 
     ws.column_dimensions["A"].width = 30
-    ws.column_dimensions["B"].width = 80
+    ws.column_dimensions["B"].width = 100
 
     # =========================
     # Sheet 2 : GOODS 45A/45B
@@ -53,8 +66,11 @@ def generate_excel(db: Session, id: int) -> str:
             item.get("description"),
         ])
 
+    for row in ws_goods.iter_rows(min_row=2, max_col=2):
+        row[1].alignment = Alignment(wrap_text=True, vertical="top")
+
     ws_goods.column_dimensions["A"].width = 15
-    ws_goods.column_dimensions["B"].width = 120
+    ws_goods.column_dimensions["B"].width = 130
 
     # =========================
     # Sheet 3 : DOCUMENTS 46A
@@ -73,30 +89,12 @@ def generate_excel(db: Session, id: int) -> str:
             item.get("conditions"),
         ])
 
+    for row in ws_docs.iter_rows(min_row=2, max_col=3):
+        row[2].alignment = Alignment(wrap_text=True, vertical="top")
+
     ws_docs.column_dimensions["A"].width = 15
     ws_docs.column_dimensions["B"].width = 35
-    ws_docs.column_dimensions["C"].width = 120
-
-    # =========================
-    # Sheet 4 : ANNEXURES
-    # =========================
-    ws_annex = wb.create_sheet("ANNEXURES")
-    ws_annex.append(["Parent Item No", "Code", "Text"])
-    for col in range(1, 4):
-        ws_annex.cell(row=1, column=col).font = Font(bold=True)
-
-    for item in docs.get("items", []):
-        annexures = item.get("annexures", [])
-        for annex in annexures:
-            ws_annex.append([
-                item.get("item_no"),
-                annex.get("code"),
-                annex.get("text"),
-            ])
-
-    ws_annex.column_dimensions["A"].width = 20
-    ws_annex.column_dimensions["B"].width = 10
-    ws_annex.column_dimensions["C"].width = 120
+    ws_docs.column_dimensions["C"].width = 130
 
     # =========================
     # Save file
