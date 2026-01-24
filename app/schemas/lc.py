@@ -52,7 +52,3 @@ class LC(LCBase):
 
     class Config:
         from_attributes = True
-
-class LCBoundary(BaseModel):
-    start_id: str | None
-    end_id: str | None
