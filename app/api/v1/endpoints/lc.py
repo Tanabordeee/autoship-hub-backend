@@ -43,9 +43,3 @@ def generate_excel_endpoint(id:int , db:Session = Depends(get_db) , current_user
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
-@router.post("/lc-boundary" , response_model=LCBoundary)
-def lc_boundary_endpoint(
-    query: str = Body(...),
-    current_user: User = Depends(get_current_user)
-):
-    return boundary_text(query)
