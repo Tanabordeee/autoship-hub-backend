@@ -138,7 +138,6 @@ def extract_lc(db: Session, file: UploadFile, user_id: int, transaction_id: int)
         "confirmation_instructions_49": extracted_data["confirmation_instructions_49"].group(1).strip() if extracted_data["confirmation_instructions_49"] else None,
         "instructions_to_the_paying_accepting_negotiating_bank_78": extracted_data["instructions_to_the_paying_accepting_negotiating_bank_78"].group(1).strip() if extracted_data["instructions_to_the_paying_accepting_negotiating_bank_78"] else None,
         "pdf_path": file_path,
-        "full_text": full_text
     }
     TransactionRepo.update(db, transaction_id, TransactionUpdate(status="pending", current_process="lc"))
     return response_data
