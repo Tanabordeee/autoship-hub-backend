@@ -46,9 +46,13 @@ class LCCreate(LCBase):
 class LCUpdate(LCBase):
     pass
 
-# class LC(LCBase):
-#     id: int
-#     created_at: datetime
+class LC(LCBase):
+    id: int
+    created_at: datetime
 
-#     class Config:
-#         from_attributes = True
+    class Config:
+        from_attributes = True
+
+class LCBoundary(BaseModel):
+    start_id: str | None
+    end_id: str | None

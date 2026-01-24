@@ -1,51 +1,20 @@
+import os
+import re
 from sqlalchemy.orm import Session
 from fastapi import UploadFile
-import os
-import base64
-import requests
-import io
-import json
 from pdf2image import convert_from_path
+
 from app.schemas.lc import LCCreate
 from app.repositories.lc_repo import LCRepo
 from app.repositories.transaction_repo import TransactionRepo
 from app.schemas.transaction import TransactionUpdate
-from app.schemas.transaction import TransactionCreate
-import re
-def ocr_image(image, model: str):
-    """Helper function to OCR a single image"""
-    buf = io.BytesIO()
-    image.save(buf, format="PNG")
-    img_base64 = base64.b64encode(buf.getvalue()).decode()
 
-    payload = {
-        "model": model,
-        "prompt": "อ่านข้อความทั้งหมดในภาพนี้อย่างละเอียด\n- รักษาลำดับบรรทัด\n- ไม่สรุป\n- ไม่ตีความ\n- พิมพ์ตามต้นฉบับ 100%",
-        "images": [img_base64],
-        "stream": False
-    }
+from .ocr import ocr_image
+from .parser import clean_text_common, clean_45a_text, extract_document_require_46A
 
-    r = requests.post(
-        "http://localhost:11434/api/generate",
-        json=payload
-    )
-    
-    try:
-        data = r.json()
-        if "response" in data:
-            return data["response"]
-        else:
-            print(f"Error: 'response' key missing. API returned: {data}")
-            return f"[Error: {data.get('error', 'Unknown error')}]"
-    except Exception as e:
-        print(f"Exception during JSON parsing: {e}")
-        print(f"Status Code: {r.status_code}")
-        print(f"Raw Response: {r.text}")
-        return "[Error: Failed to parse response]"
-def create_lc(db:Session , payload: LCCreate , user_id:int , pi_id:list[int]):
+def create_lc(db: Session, payload: LCCreate, user_id: int, pi_id: list[int]):
     # Check if LC with same lc_no already exists
     existing_lc = LCRepo.get_latest_version_by_lc_no(db, payload.lc_no)
-    # print(existing_lc.__dict__)
     if existing_lc:
         # Increment version
         new_version = (existing_lc.versions or 0) + 1
@@ -65,162 +34,9 @@ def create_lc(db:Session , payload: LCCreate , user_id:int , pi_id:list[int]):
         # First version
         payload.versions = 1
     
-    return LCRepo.create(db , payload , user_id , pi_id)
-def clean_text_common(text: str) -> str:
-    text = re.sub(
-        r"THIS CREDIT IS VALID ONLY WHEN USED.*?(?=\n)|"
-        r"NOTIFICATION OF LC ADVICE.*?(?=\n)|"
-        r"PAGE \d+/.*?(?=\n)|"
-        r"\[Page \d+\].*?(?=\n)|"
-        r"^standard chartered\s*$|"
-        r"^COMMERCIAL BANK OF CEYLON PLC\s*$|"
-        r"^SH REL.*?(?=\n)|"
-        r".*?ARR \.DATE=.*?(?=\n)|"
-        r".*?ARR \.TIME=.*?(?=\n)|"
-        r".*?REF \.NO\..*?(?=\n)|"
-        r"^ARR .*?(?=\n)|"
-        r"^REF .*?(?=\n)|"
-        r"^DEAL=.*?(?=\n)|"
-        r"^SENDER:.*?(?=\n)|"
-        r".*?TEST AGREED SENDER.*?(?=\n)|"
-        r"^Tel .*?(?=\n)|"
-        r"^Fax .*?(?=\n)|"
-        r"^Registration .*?(?=\n)|"
-        r"^โทรศัพท์ .*?(?=\n)|"
-        r"^โทรสาร .*?(?=\n)|"
-        r"^ทะเบียนเลขที่ .*?(?=\n)|"
-        r"^ธนาคารสแตนดาร์ดชาร์เตอร์ด.*?(?=\n)|"
-        r"^140 ถนน.*?(?=\n)|"
-        r"^140 Wireless.*?(?=\n)|"
-        r"^ITSD-14.*?(?=\n)|"
-        r"^\d+\s+TEST AGREED.*?(?=\n)|"
-        r"^\d+\s*$|"
-        r"^COLOMBO\s*$|"
-        r"^Bangkok \d+.*?(?=\n)|"
-        r"Standard Chartered Bank.*?(?=\n)|"
-        r"TEST AGREED COMMERCIAL BANK OF CEYLON PLC COLOMBO.*?(?=\n)|"
-        r"ICC PUBLICATION NO\.600 IS EXCLUDED.*?(?=\n)|"
-        r"ARTICLE\s+\d+.*?UCP.*?(?=\n)|",
-        "",
-        text,
-        flags=re.IGNORECASE | re.MULTILINE
-    )
+    return LCRepo.create(db, payload, user_id, pi_id)
 
-    text = re.sub(r"\n\s*\n+", "\n", text).strip()
-    return text
-def clean_45a_text(text: str) -> str:
-    # ตัดทุกอย่างหลัง noise marker (STOP WORDS)
-    stop_patterns = [
-        r"THIS CREDIT IS VALID ONLY WHEN USED",
-        r"NOTIFICATION OF LC ADVICE",
-        r"PAGE\s+\d+/",
-        r"\[Page\s*\d+\]",
-        r"Standard Chartered Bank",
-        r"ธนาคารสแตนดาร์ดชาร์เตอร์ด",
-        r"COMMERCIAL BANK OF CEYLON",
-        r"COMERCIAL BANK OF CEYLON",
-        r"SH REL\. DATE",
-        r"SENDER:",
-    ]
-
-    for p in stop_patterns:
-        text = re.split(p, text, flags=re.IGNORECASE)[0]
-
-    # cleanup whitespace
-    text = re.sub(r"\n\s*\n+", "\n", text).strip()
-    return text
-def extract_document_require_46A(full_text: str):
-    patterns = {
-        1: r"46A\s*:\s*DOCUMENTS\s*REQUIRED\s*(.+?)(?=\s*2\))",
-        2: r"2\)\s*(.+?)(?=\s*3\))",
-        3: r"3\)\s*(.+?)(?=\s*4\))",
-        4: r"4\)\s*(.+?)(?=\s*5\))",
-        5: r"5\)\s*(.+?)(?=\s*6\))",
-        6: r"6\)\s*(.+?)(?=\s*7\))",
-        7: r"7\)\s*(.+?)(?=\s*:?\s*47A\s*:|$)",
-    }
-
-    doc_types = {
-        1: "INVOICE",
-        2: "BILL_OF_LADING",
-        3: "INSURANCE",
-        4: "CERTIFICATE_OF_REGISTRATION",
-        5: "TRANSLATION",
-        6: "INSPECTION_CERTIFICATE",
-        7: "INSPECTION_CERTIFICATE",
-    }
-
-    items = []
-
-    for item_no in range(1, 8):
-        match = re.search(patterns[item_no], full_text, re.DOTALL | re.IGNORECASE)
-        if not match:
-            continue
-
-        text = match.group(1).strip()
-
-        # =================================================
-        # CLEANUP LOGIC (ใช้ชุดเดิม 100% กับทุก item)
-        # =================================================
-        text = clean_text_common(text)
-
-        text = re.sub(r"\n\s*\n+", "\n", text).strip()
-
-        item = {
-            "item_no": item_no,
-            "doc_type": doc_types[item_no],
-            "conditions": text
-        }
-
-        # =================================================
-        # SPECIAL FORMAT : ITEM 6
-        # =================================================
-        if item_no == 6:
-
-            annexures = []
-
-            annexure_block_match = re.search(
-                r"ORIGINAL\s+CERTIFICATE\s+OF\s+PRE\s+SHIPMENT\s+INSPECTION.*?"
-                r"THIS\s+REPORT\s+SHOULD\s+HAVE\s+THE\s+FOLLOWING\s+ANNEXTURE\.(.+?)"
-                r"(?=\n?\s*THE\s+STAMP\s+OF|\n?\s*\d+\)|$)",
-                item["conditions"],
-                flags=re.DOTALL | re.IGNORECASE
-            )
-
-            if annexure_block_match:
-                annexure_block = annexure_block_match.group(1)
-
-                annexure_matches = re.findall(
-                    r"\(([A-C])\)\s*(.+?)(?=\n?\([A-C]\)|$)",
-                    annexure_block,
-                    flags=re.DOTALL | re.IGNORECASE
-                )
-
-                annexures = [
-                    {
-                        "code": code.upper(),
-                        "text": re.sub(r"\n\s*\n+", "\n", body).strip()
-                    }
-                    for code, body in annexure_matches
-                ]
-
-            if annexures:
-                item["annexures"] = annexures
-
-            # ลบ annexure block ออกจาก conditions (ให้เหลือแต่ requirement หลัก)
-            item["conditions"] = re.sub(
-                r"THIS\s+REPORT\s+SHOULD\s+HAVE\s+THE\s+FOLLOWING\s+ANNEXTURE\..*",
-                "",
-                item["conditions"],
-                flags=re.DOTALL | re.IGNORECASE
-            ).strip()
-
-        items.append(item)
-
-    return {
-        "items": items
-    }
-def extract_lc(db: Session, file: UploadFile, user_id: int , transaction_id:int):
+def extract_lc(db: Session, file: UploadFile, user_id: int, transaction_id: int):
     """
     Extract LC data from PDF file and return as JSON
     """
@@ -322,6 +138,7 @@ def extract_lc(db: Session, file: UploadFile, user_id: int , transaction_id:int)
         "confirmation_instructions_49": extracted_data["confirmation_instructions_49"].group(1).strip() if extracted_data["confirmation_instructions_49"] else None,
         "instructions_to_the_paying_accepting_negotiating_bank_78": extracted_data["instructions_to_the_paying_accepting_negotiating_bank_78"].group(1).strip() if extracted_data["instructions_to_the_paying_accepting_negotiating_bank_78"] else None,
         "pdf_path": file_path,
+        "full_text": full_text
     }
-    TransactionRepo.update(db, transaction_id , TransactionUpdate(status="pending", current_process="lc"))
+    TransactionRepo.update(db, transaction_id, TransactionUpdate(status="pending", current_process="lc"))
     return response_data
