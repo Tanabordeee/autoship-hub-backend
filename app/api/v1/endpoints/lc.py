@@ -8,8 +8,6 @@ from app.schemas.lc import LCCreate, LC
 from app.services.lc import create_lc
 from app.services.lc import generate_excel
 from fastapi.responses import FileResponse
-from app.services.lc.lc_boundary import boundary_text
-from app.schemas.lc import LCBoundary
 router = APIRouter()
 
 @router.post("/extract-lc")
