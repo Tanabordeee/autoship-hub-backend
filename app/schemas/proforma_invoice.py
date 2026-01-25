@@ -36,4 +36,4 @@ class ApproveProformaInvoice(BaseModel):
     approver: str
 
 class ChassisRequest(BaseModel):
-    pi_id: List[str]
+    pi_id: List[int]

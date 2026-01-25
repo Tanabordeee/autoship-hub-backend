@@ -45,6 +45,5 @@ def get_proforma_invoice_by_pi_id(db:Session, pi_id:str):
 def get_proforma_invoice_by_id(db:Session, id:int):
     return ProformaInvoiceRepo.get_by_id(db, id)
 
-def get_chassis_by_pi_id(db:Session, pi_ids:List[str]):
-    pi_ids = [int(pi_id) for pi_id in pi_ids]
+def get_chassis_by_pi_id(db:Session, pi_ids:List[int]):
     return ProformaInvoiceRepo.get_chassis_by_pi_id(db, pi_ids)
