@@ -111,4 +111,4 @@ class ProformaInvoiceRepo:
         db.refresh(pi.transaction)
         return pi
     def get_chassis_by_pi_id(db:Session, pi_ids:List[int]):
-        return db.query(PiItem).filter(PiItem.pi_id.in_(pi_ids), PiItem.item_type == "CHASSIS").all()
+        return db.query(PiItem.description).filter(PiItem.pi_id.in_(pi_ids), PiItem.item_type == "CHASSIS").all()

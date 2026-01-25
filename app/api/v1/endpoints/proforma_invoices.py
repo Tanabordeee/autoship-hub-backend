@@ -9,6 +9,7 @@ from app.schemas.proforma_invoice import CreateProformaInvoice, ApproveProformaI
 from app.api.deps import get_current_user
 from app.models.user import User
 from app.services.proforma_invoice_service import generate_pdf
+from typing import List 
 router = APIRouter()
 
 @router.post("/proforma_invoices", response_model=CreateProformaInvoice)
@@ -44,6 +45,6 @@ def get_proforma_invoice_by_pi_id_endpoint(pi_id: str, db: Session = Depends(get
 def get_proforma_invoice_by_id_endpoint(id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     return get_proforma_invoice_by_id(db, id)
 
-@router.post("/proforma_invoices/chassis")
+@router.post("/proforma_invoices/chassis" , response_model=List[str])
 def get_chassis_by_pi_id_endpoint(payload: ChassisRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     return get_chassis_by_pi_id(db, payload.pi_id)
