@@ -8,6 +8,7 @@ class PiItemCreate(BaseModel):
     unit_price: float
     amount_in_usd: float
     parent_items: Optional[int] = None
+    item_type : str
     
 class CreateProformaInvoice(BaseModel):
     pi_id: str
@@ -33,3 +34,6 @@ class CreateProformaInvoice(BaseModel):
 
 class ApproveProformaInvoice(BaseModel):
     approver: str
+
+class ChassisRequest(BaseModel):
+    pi_id: List[str]

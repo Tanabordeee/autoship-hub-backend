@@ -52,7 +52,7 @@ class PiItem(Base):
     unit = Column(Integer)
     pi_id = Column(BigInteger, ForeignKey("proforma_invoice.id", ondelete="CASCADE"), nullable=False)
     parent_items = Column(BigInteger, ForeignKey("pi_items.id", ondelete="CASCADE"))
-
+    item_type = Column(Text)
     __table_args__ = (
         UniqueConstraint("pi_id", "item_no", name="uq_pi_items_item_no"),
     )
