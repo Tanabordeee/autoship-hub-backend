@@ -8,7 +8,6 @@ from app.schemas.lc import LCCreate
 from app.repositories.lc_repo import LCRepo
 from app.repositories.transaction_repo import TransactionRepo
 from app.schemas.transaction import TransactionUpdate
-
 from .ocr import ocr_image
 from .parser import clean_text_common, clean_45a_text, extract_document_require_46A
 
