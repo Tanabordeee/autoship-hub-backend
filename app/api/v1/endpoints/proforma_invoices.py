@@ -47,4 +47,4 @@ def get_proforma_invoice_by_id_endpoint(id: int, db: Session = Depends(get_db), 
 
 @router.post("/proforma_invoices/chassis" , response_model=List[str])
 def get_chassis_by_pi_id_endpoint(payload: ChassisRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    return get_chassis_by_pi_id(db, payload.pi_id)
+    return get_chassis_by_pi_id(db, payload.pi_ids)
