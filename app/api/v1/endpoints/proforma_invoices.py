@@ -3,9 +3,9 @@ from fastapi.responses import FileResponse
 import os
 
 from sqlalchemy.orm import Session
-from app.services.proforma_invoice_service import create_proforma_invoice, approve_proforma_invoice, reject_proforma_invoice , get_all_proforma_invoice , get_proforma_invoice_by_pi_id ,  get_proforma_invoice_by_id
+from app.services.proforma_invoice_service import create_proforma_invoice, approve_proforma_invoice, reject_proforma_invoice , get_all_proforma_invoice , get_proforma_invoice_by_pi_id ,  get_proforma_invoice_by_id , get_chassis_by_pi_id
 from app.api.deps import get_db
-from app.schemas.proforma_invoice import CreateProformaInvoice, ApproveProformaInvoice
+from app.schemas.proforma_invoice import CreateProformaInvoice, ApproveProformaInvoice , ChassisRequest
 from app.api.deps import get_current_user
 from app.models.user import User
 from app.services.proforma_invoice_service import generate_pdf
@@ -43,3 +43,7 @@ def get_proforma_invoice_by_pi_id_endpoint(pi_id: str, db: Session = Depends(get
 @router.get("/proforma_invoices/id/{id}")
 def get_proforma_invoice_by_id_endpoint(id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     return get_proforma_invoice_by_id(db, id)
+
+@router.post("/proforma_invoices/chassis")
+def get_chassis_by_pi_id_endpoint(payload: ChassisRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    return get_chassis_by_pi_id(db, payload.pi_id)

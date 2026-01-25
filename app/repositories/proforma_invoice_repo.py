@@ -6,6 +6,7 @@ from app.schemas.proforma_invoice import CreateProformaInvoice
 from app.models.customer import Customer
 from app.repositories.transaction_repo import TransactionRepo
 from app.schemas.transaction import TransactionCreate
+from typing import List
 class ProformaInvoiceRepo:
     def get_by_pi_id(db:Session, pi_id:str):
         return db.query(ProformaInvoice).options(joinedload(ProformaInvoice.transaction)).filter(ProformaInvoice.pi_id == pi_id).first()
@@ -82,7 +83,8 @@ class ProformaInvoiceRepo:
                 unit = item_data.unit,
                 unit_price = item_data.unit_price,
                 amount_in_usd = item_data.amount_in_usd,
-                pi_id = pi.id
+                pi_id = pi.id,
+                item_type = item_data.item_type
             )
             item_map[item_data.item_no] = pi_item
 
@@ -108,3 +110,5 @@ class ProformaInvoiceRepo:
         db.refresh(pi)  
         db.refresh(pi.transaction)
         return pi
+    def get_chassis_by_pi_id(db:Session, pi_ids:List[int]):
+        return db.query(PiItem).filter(PiItem.pi_id.in_(pi_ids), PiItem.item_type == "CHASSIS").all()

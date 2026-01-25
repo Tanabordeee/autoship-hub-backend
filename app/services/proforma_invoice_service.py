@@ -5,6 +5,7 @@ from app.repositories.transaction_repo import TransactionRepo
 from app.schemas.transaction import TransactionUpdate
 import os
 import jinja2
+from typing import List
 from weasyprint import HTML
 def create_proforma_invoice(db:Session, payload:CreateProformaInvoice , user_id:int):
     return ProformaInvoiceRepo.create(db, payload, user_id)
@@ -43,3 +44,7 @@ def get_proforma_invoice_by_pi_id(db:Session, pi_id:str):
 
 def get_proforma_invoice_by_id(db:Session, id:int):
     return ProformaInvoiceRepo.get_by_id(db, id)
+
+def get_chassis_by_pi_id(db:Session, pi_ids:List[str]):
+    pi_ids = [int(pi_id) for pi_id in pi_ids]
+    return ProformaInvoiceRepo.get_chassis_by_pi_id(db, pi_ids)
