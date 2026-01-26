@@ -4,19 +4,16 @@ import os
 import base64
 import requests
 import io
-import json
 from pdf2image import convert_from_path
 from app.schemas.lc import LCCreate
 from app.repositories.lc_repo import LCRepo
 from app.repositories.transaction_repo import TransactionRepo
 from app.schemas.transaction import TransactionUpdate
-from app.schemas.transaction import TransactionCreate
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font
-from openpyxl.utils import get_column_letter
-from sqlalchemy.orm import Session
-from datetime import datetime
 import re
+
+
 def ocr_image(image, model: str):
     """Helper function to OCR a single image"""
     buf = io.BytesIO()
@@ -27,14 +24,11 @@ def ocr_image(image, model: str):
         "model": model,
         "prompt": "อ่านข้อความทั้งหมดในภาพนี้อย่างละเอียด\n- รักษาลำดับบรรทัด\n- ไม่สรุป\n- ไม่ตีความ\n- พิมพ์ตามต้นฉบับ 100%",
         "images": [img_base64],
-        "stream": False
+        "stream": False,
     }
 
-    r = requests.post(
-        "http://localhost:11434/api/generate",
-        json=payload
-    )
-    
+    r = requests.post("http://localhost:11434/api/generate", json=payload)
+
     try:
         data = r.json()
         if "response" in data:
@@ -47,30 +41,34 @@ def ocr_image(image, model: str):
         print(f"Status Code: {r.status_code}")
         print(f"Raw Response: {r.text}")
         return "[Error: Failed to parse response]"
-def create_lc(db:Session , payload: LCCreate , user_id:int , pi_id:list[int]):
+
+
+def create_lc(db: Session, payload: LCCreate, user_id: int, pi_id: list[int]):
     # Check if LC with same lc_no already exists
     existing_lc = LCRepo.get_latest_version_by_lc_no(db, payload.lc_no)
     # print(existing_lc.__dict__)
     if existing_lc:
         # Increment version
         new_version = (existing_lc.versions or 0) + 1
-        
+
         # Merge None fields from new payload with existing LC data
         payload_dict = payload.model_dump()
-        
+
         for field, value in payload_dict.items():
             if value is None and hasattr(existing_lc, field):
                 # If new value is None, use the old value
                 old_value = getattr(existing_lc, field)
                 setattr(payload, field, old_value)
-        
+
         # Set the new version number
         payload.versions = new_version
     else:
         # First version
         payload.versions = 1
-    
-    return LCRepo.create(db , payload , user_id , pi_id)
+
+    return LCRepo.create(db, payload, user_id, pi_id)
+
+
 def clean_text_common(text: str) -> str:
     text = re.sub(
         r"THIS CREDIT IS VALID ONLY WHEN USED.*?(?=\n)|"
@@ -108,11 +106,13 @@ def clean_text_common(text: str) -> str:
         r"ARTICLE\s+\d+.*?UCP.*?(?=\n)|",
         "",
         text,
-        flags=re.IGNORECASE | re.MULTILINE
+        flags=re.IGNORECASE | re.MULTILINE,
     )
 
     text = re.sub(r"\n\s*\n+", "\n", text).strip()
     return text
+
+
 def clean_45a_text(text: str) -> str:
     # ตัดทุกอย่างหลัง noise marker (STOP WORDS)
     stop_patterns = [
@@ -134,6 +134,8 @@ def clean_45a_text(text: str) -> str:
     # cleanup whitespace
     text = re.sub(r"\n\s*\n+", "\n", text).strip()
     return text
+
+
 def extract_document_require_46A(full_text: str):
     patterns = {
         1: r"46A\s*:\s*DOCUMENTS\s*REQUIRED\s*(.+?)(?=\s*2\))",
@@ -171,17 +173,12 @@ def extract_document_require_46A(full_text: str):
 
         text = re.sub(r"\n\s*\n+", "\n", text).strip()
 
-        item = {
-            "item_no": item_no,
-            "doc_type": doc_types[item_no],
-            "conditions": text
-        }
+        item = {"item_no": item_no, "doc_type": doc_types[item_no], "conditions": text}
 
         # =================================================
         # SPECIAL FORMAT : ITEM 6
         # =================================================
         if item_no == 6:
-
             annexures = []
 
             annexure_block_match = re.search(
@@ -189,7 +186,7 @@ def extract_document_require_46A(full_text: str):
                 r"THIS\s+REPORT\s+SHOULD\s+HAVE\s+THE\s+FOLLOWING\s+ANNEXTURE\.(.+?)"
                 r"(?=\n?\s*THE\s+STAMP\s+OF|\n?\s*\d+\)|$)",
                 item["conditions"],
-                flags=re.DOTALL | re.IGNORECASE
+                flags=re.DOTALL | re.IGNORECASE,
             )
 
             if annexure_block_match:
@@ -198,13 +195,13 @@ def extract_document_require_46A(full_text: str):
                 annexure_matches = re.findall(
                     r"\(([A-C])\)\s*(.+?)(?=\n?\([A-C]\)|$)",
                     annexure_block,
-                    flags=re.DOTALL | re.IGNORECASE
+                    flags=re.DOTALL | re.IGNORECASE,
                 )
 
                 annexures = [
                     {
                         "code": code.upper(),
-                        "text": re.sub(r"\n\s*\n+", "\n", body).strip()
+                        "text": re.sub(r"\n\s*\n+", "\n", body).strip(),
                     }
                     for code, body in annexure_matches
                 ]
@@ -217,15 +214,15 @@ def extract_document_require_46A(full_text: str):
                 r"THIS\s+REPORT\s+SHOULD\s+HAVE\s+THE\s+FOLLOWING\s+ANNEXTURE\..*",
                 "",
                 item["conditions"],
-                flags=re.DOTALL | re.IGNORECASE
+                flags=re.DOTALL | re.IGNORECASE,
             ).strip()
 
         items.append(item)
 
-    return {
-        "items": items
-    }
-def extract_lc(db: Session, file: UploadFile, user_id: int , transaction_id:int):
+    return {"items": items}
+
+
+def extract_lc(db: Session, file: UploadFile, user_id: int, transaction_id: int):
     """
     Extract LC data from PDF file and return as JSON
     """
@@ -246,7 +243,7 @@ def extract_lc(db: Session, file: UploadFile, user_id: int , transaction_id:int)
 
     results = []
     for idx, page in enumerate(pages):
-        print(f"OCR page {idx+1}/{len(pages)}")
+        print(f"OCR page {idx + 1}/{len(pages)}")
         text = ocr_image(page, MODEL)
         results.append({"page": idx + 1, "text": text.strip()})
 
@@ -255,31 +252,107 @@ def extract_lc(db: Session, file: UploadFile, user_id: int , transaction_id:int)
 
     # Extract all fields using regex
     extracted_data = {
-        "sequence_of_total_27": re.search(r"SEQUENCE\s*OF\s*TOTAL\s*(.+?)(?=\s*:|$)", full_text, re.DOTALL|re.IGNORECASE),
-        "form_of_documentary_credit_40a": re.search(r"FORM\s*OF\s*DOCUMENTARY\s*CREDIT\s*(.+?)(?=\s*:|$)", full_text, re.DOTALL|re.IGNORECASE),
-        "docmentary_credit_number_20": re.search(r"DOCUMENTARY\s*CREDIT\s*NUMBER\s*(.+?)(?=\s*:|$)", full_text, re.DOTALL|re.IGNORECASE),
-        "date_of_issue_31c": re.search(r"DATE\s*OF\s*ISSUE\s*(.+?)(?=\s*:|$)", full_text, re.DOTALL|re.IGNORECASE),
-        "applicable_rules_40e": re.search(r"APPLICABLE\s*RULES\s*(.+?)(?=\s*:|$)", full_text, re.DOTALL|re.IGNORECASE),
-        "date_and_place_of_expiry_31d": re.search(r"DATE\s*AND\s*PLACE\s*OF\s*EXPIRY\s*(.+?)(?=\s*:|$)", full_text, re.DOTALL|re.IGNORECASE),
-        "applicant_50": re.search(r"APPLICANT\s*(.+?)(?=\s*:|$)", full_text, re.DOTALL|re.IGNORECASE),
-        "beneficiary_59": re.search(r"59:\s*BENEFICIARY\s*(.+?)(?=\s*:|$)", full_text, re.DOTALL|re.IGNORECASE),
-        "currency_code_32b": re.search(r"32B:\s*CURRENCY\s*CODE\s*,\s*AMOUNT\s*(.+?)(?=\s*:|$)", full_text, re.DOTALL|re.IGNORECASE),
-        "available_with_41d": re.search(r"AVAILABLE\s*WITH\s*(.+?)(?=\s*:|$)", full_text, re.DOTALL|re.IGNORECASE),
-        "partial_shipments_43p": re.search(r"PARTIAL\s*SHIPMENTS\s*(.+?)(?=\s*:|$)", full_text, re.DOTALL|re.IGNORECASE),
-        "transhipment_43t": re.search(r"TRANSHIPMENT\s*(.+?)(?=\s*:|$)", full_text, re.DOTALL|re.IGNORECASE),
-        "port_of_loading_of_departure_44e": re.search(r"PORT\s*OF\s*LOADING/AIRPORT\s*OF\s*DEPARTURE\s*(.+?)(?=\s*:|$)", full_text, re.DOTALL|re.IGNORECASE),
-        "port_of_discharge_44f": re.search(r"PORT\s*OF\s*DISCHARGE/AIRPORT\s*OF\s*DESTINATION\s*(.+?)(?=\s*:|$)", full_text, re.DOTALL|re.IGNORECASE),
-        "latest_date_of_shipment_44c": re.search(r"LATEST\s*DATE\s*OF\s*SHIPMENT\s*(.+?)(?=\s*:|$)", full_text, re.DOTALL|re.IGNORECASE),
-        "additional_conditions_47a": re.search(r"47A\s*:\s*ADDITIONAL\s*CONDITIONS\s*(.+?)(?=\s*:|$)", full_text, re.DOTALL|re.IGNORECASE),
-        "charges_71d": re.search(r"71D\s*:\s*CHARGES\s*(.+?)(?=\s*:|$)", full_text, re.DOTALL|re.IGNORECASE),
-        "period_for_presentation_in_days_48": re.search(r"PERIOD\s*FOR\s*PRESENTATION\s*IN\s*DAYS\s*(.+?)(?=\s*:|$)", full_text, re.DOTALL|re.IGNORECASE),
-        "confirmation_instructions_49": re.search(r"CONFIRMATION\s*INSTRUCTIONS\s*(.+?)(?=\s*:|$)", full_text, re.DOTALL|re.IGNORECASE),
-        "instructions_to_the_paying_accepting_negotiating_bank_78": re.search(r"INSTRUCTIONS\s*TO\s*THE\s*PAYING/ACCEPTING/NEGOTIATING\s*BANK\s*(.*?)(?=THIS CREDIT IS VALID ONLY WHEN USED)", full_text, re.DOTALL|re.IGNORECASE),
-        "lc_no": re.search(r"LC\s*ADVICE\s*NO.\s*(.+?)(?=\s*DATE)", full_text, re.DOTALL|re.IGNORECASE),
+        "sequence_of_total_27": re.search(
+            r"SEQUENCE\s*OF\s*TOTAL\s*(.+?)(?=\s*:|$)",
+            full_text,
+            re.DOTALL | re.IGNORECASE,
+        ),
+        "form_of_documentary_credit_40a": re.search(
+            r"FORM\s*OF\s*DOCUMENTARY\s*CREDIT\s*(.+?)(?=\s*:|$)",
+            full_text,
+            re.DOTALL | re.IGNORECASE,
+        ),
+        "docmentary_credit_number_20": re.search(
+            r"DOCUMENTARY\s*CREDIT\s*NUMBER\s*(.+?)(?=\s*:|$)",
+            full_text,
+            re.DOTALL | re.IGNORECASE,
+        ),
+        "date_of_issue_31c": re.search(
+            r"DATE\s*OF\s*ISSUE\s*(.+?)(?=\s*:|$)", full_text, re.DOTALL | re.IGNORECASE
+        ),
+        "applicable_rules_40e": re.search(
+            r"APPLICABLE\s*RULES\s*(.+?)(?=\s*:|$)",
+            full_text,
+            re.DOTALL | re.IGNORECASE,
+        ),
+        "date_and_place_of_expiry_31d": re.search(
+            r"DATE\s*AND\s*PLACE\s*OF\s*EXPIRY\s*(.+?)(?=\s*:|$)",
+            full_text,
+            re.DOTALL | re.IGNORECASE,
+        ),
+        "applicant_50": re.search(
+            r"APPLICANT\s*(.+?)(?=\s*:|$)", full_text, re.DOTALL | re.IGNORECASE
+        ),
+        "beneficiary_59": re.search(
+            r"59:\s*BENEFICIARY\s*(.+?)(?=\s*:|$)", full_text, re.DOTALL | re.IGNORECASE
+        ),
+        "currency_code_32b": re.search(
+            r"32B:\s*CURRENCY\s*CODE\s*,\s*AMOUNT\s*(.+?)(?=\s*:|$)",
+            full_text,
+            re.DOTALL | re.IGNORECASE,
+        ),
+        "available_with_41d": re.search(
+            r"AVAILABLE\s*WITH\s*(.+?)(?=\s*:|$)", full_text, re.DOTALL | re.IGNORECASE
+        ),
+        "partial_shipments_43p": re.search(
+            r"PARTIAL\s*SHIPMENTS\s*(.+?)(?=\s*:|$)",
+            full_text,
+            re.DOTALL | re.IGNORECASE,
+        ),
+        "transhipment_43t": re.search(
+            r"TRANSHIPMENT\s*(.+?)(?=\s*:|$)", full_text, re.DOTALL | re.IGNORECASE
+        ),
+        "port_of_loading_of_departure_44e": re.search(
+            r"PORT\s*OF\s*LOADING/AIRPORT\s*OF\s*DEPARTURE\s*(.+?)(?=\s*:|$)",
+            full_text,
+            re.DOTALL | re.IGNORECASE,
+        ),
+        "port_of_discharge_44f": re.search(
+            r"PORT\s*OF\s*DISCHARGE/AIRPORT\s*OF\s*DESTINATION\s*(.+?)(?=\s*:|$)",
+            full_text,
+            re.DOTALL | re.IGNORECASE,
+        ),
+        "latest_date_of_shipment_44c": re.search(
+            r"LATEST\s*DATE\s*OF\s*SHIPMENT\s*(.+?)(?=\s*:|$)",
+            full_text,
+            re.DOTALL | re.IGNORECASE,
+        ),
+        "additional_conditions_47a": re.search(
+            r"47A\s*:\s*ADDITIONAL\s*CONDITIONS\s*(.+?)(?=\s*:|$)",
+            full_text,
+            re.DOTALL | re.IGNORECASE,
+        ),
+        "charges_71d": re.search(
+            r"71D\s*:\s*CHARGES\s*(.+?)(?=\s*:|$)", full_text, re.DOTALL | re.IGNORECASE
+        ),
+        "period_for_presentation_in_days_48": re.search(
+            r"PERIOD\s*FOR\s*PRESENTATION\s*IN\s*DAYS\s*(.+?)(?=\s*:|$)",
+            full_text,
+            re.DOTALL | re.IGNORECASE,
+        ),
+        "confirmation_instructions_49": re.search(
+            r"CONFIRMATION\s*INSTRUCTIONS\s*(.+?)(?=\s*:|$)",
+            full_text,
+            re.DOTALL | re.IGNORECASE,
+        ),
+        "instructions_to_the_paying_accepting_negotiating_bank_78": re.search(
+            r"INSTRUCTIONS\s*TO\s*THE\s*PAYING/ACCEPTING/NEGOTIATING\s*BANK\s*(.*?)(?=THIS CREDIT IS VALID ONLY WHEN USED)",
+            full_text,
+            re.DOTALL | re.IGNORECASE,
+        ),
+        "lc_no": re.search(
+            r"LC\s*ADVICE\s*NO.\s*(.+?)(?=\s*DATE)",
+            full_text,
+            re.DOTALL | re.IGNORECASE,
+        ),
     }
-    
+
     # Extract description of goods
-    description_match = re.search(r"45A\s*:\s*DESCRIPTION\s*OF\s*GOODS\s*AND/OR\s*SERVICES\s*(.+?)(?=\s*\n?\s*\d{2}[A-Z]?\s*:|$)", full_text, re.DOTALL|re.IGNORECASE)
+    description_match = re.search(
+        r"45A\s*:\s*DESCRIPTION\s*OF\s*GOODS\s*AND/OR\s*SERVICES\s*(.+?)(?=\s*\n?\s*\d{2}[A-Z]?\s*:|$)",
+        full_text,
+        re.DOTALL | re.IGNORECASE,
+    )
 
     # Build description_of_good_45a_45b as JSON with items
     description_of_good_45a_45b = None
@@ -288,50 +361,123 @@ def extract_lc(db: Session, file: UploadFile, user_id: int , transaction_id:int)
         description_text = clean_45a_text(raw_description_text)
         # Extract individual items (UNIT)
         items = re.split(
-            r"(?=\b\d{1,2}\s+UNIT\b)",
-            description_text,
-            flags=re.IGNORECASE
+            r"(?=\b\d{1,2}\s+UNIT\b)", description_text, flags=re.IGNORECASE
         )
         items = [i.strip() for i in items if i.strip()]
         description_of_good_45a_45b = {
             "full_text": description_text,
-            "items": [{"item_no": idx+1 , "description": item.strip()} for idx , item in enumerate(items)] if items else []
+            "items": [
+                {"item_no": idx + 1, "description": item.strip()}
+                for idx, item in enumerate(items)
+            ]
+            if items
+            else [],
         }
     document_require_46a = extract_document_require_46A(full_text)
     # Build response JSON
     response_data = {
-        "beneficiary_59": extracted_data["beneficiary_59"].group(1).strip() if extracted_data["beneficiary_59"] else None,
-        "applicant_50": extracted_data["applicant_50"].group(1).strip() if extracted_data["applicant_50"] else None,
+        "beneficiary_59": extracted_data["beneficiary_59"].group(1).strip()
+        if extracted_data["beneficiary_59"]
+        else None,
+        "applicant_50": extracted_data["applicant_50"].group(1).strip()
+        if extracted_data["applicant_50"]
+        else None,
         "description_of_good_45a_45b": description_of_good_45a_45b,
-        "date_of_issue_31c": extracted_data["date_of_issue_31c"].group(1).strip() if extracted_data["date_of_issue_31c"] else None,
-        "lc_no": extracted_data["lc_no"].group(1).strip() if extracted_data["lc_no"] else None,
+        "date_of_issue_31c": extracted_data["date_of_issue_31c"].group(1).strip()
+        if extracted_data["date_of_issue_31c"]
+        else None,
+        "lc_no": extracted_data["lc_no"].group(1).strip()
+        if extracted_data["lc_no"]
+        else None,
         "document_require_46a": document_require_46a if document_require_46a else None,
-        "docmentary_credit_number_20": extracted_data["docmentary_credit_number_20"].group(1).strip() if extracted_data["docmentary_credit_number_20"] else None,
-        "sequence_of_total_27": extracted_data["sequence_of_total_27"].group(1).strip() if extracted_data["sequence_of_total_27"] else None,
-        "form_of_documentary_credit_40a": extracted_data["form_of_documentary_credit_40a"].group(1).strip() if extracted_data["form_of_documentary_credit_40a"] else None,
-        "applicable_rules_40e": extracted_data["applicable_rules_40e"].group(1).strip() if extracted_data["applicable_rules_40e"] else None,
-        "date_and_place_of_expiry_31d": extracted_data["date_and_place_of_expiry_31d"].group(1).strip() if extracted_data["date_and_place_of_expiry_31d"] else None,
-        "currency_code_32b": extracted_data["currency_code_32b"].group(1).strip() if extracted_data["currency_code_32b"] else None,
-        "available_with_41d": extracted_data["available_with_41d"].group(1).strip() if extracted_data["available_with_41d"] else None,
-        "partial_shipments_43p": extracted_data["partial_shipments_43p"].group(1).strip() if extracted_data["partial_shipments_43p"] else None,
-        "transhipment_43t": extracted_data["transhipment_43t"].group(1).strip() if extracted_data["transhipment_43t"] else None,
-        "port_of_discharge_44f": extracted_data["port_of_discharge_44f"].group(1).strip() if extracted_data["port_of_discharge_44f"] else None,
-        "port_of_loading_of_departure_44e": extracted_data["port_of_loading_of_departure_44e"].group(1).strip() if extracted_data["port_of_loading_of_departure_44e"] else None,
-        "latest_date_of_shipment_44c": extracted_data["latest_date_of_shipment_44c"].group(1).strip() if extracted_data["latest_date_of_shipment_44c"] else None,
-        "charges_71d": extracted_data["charges_71d"].group(1).strip() if extracted_data["charges_71d"] else None,
+        "docmentary_credit_number_20": extracted_data["docmentary_credit_number_20"]
+        .group(1)
+        .strip()
+        if extracted_data["docmentary_credit_number_20"]
+        else None,
+        "sequence_of_total_27": extracted_data["sequence_of_total_27"].group(1).strip()
+        if extracted_data["sequence_of_total_27"]
+        else None,
+        "form_of_documentary_credit_40a": extracted_data[
+            "form_of_documentary_credit_40a"
+        ]
+        .group(1)
+        .strip()
+        if extracted_data["form_of_documentary_credit_40a"]
+        else None,
+        "applicable_rules_40e": extracted_data["applicable_rules_40e"].group(1).strip()
+        if extracted_data["applicable_rules_40e"]
+        else None,
+        "date_and_place_of_expiry_31d": extracted_data["date_and_place_of_expiry_31d"]
+        .group(1)
+        .strip()
+        if extracted_data["date_and_place_of_expiry_31d"]
+        else None,
+        "currency_code_32b": extracted_data["currency_code_32b"].group(1).strip()
+        if extracted_data["currency_code_32b"]
+        else None,
+        "available_with_41d": extracted_data["available_with_41d"].group(1).strip()
+        if extracted_data["available_with_41d"]
+        else None,
+        "partial_shipments_43p": extracted_data["partial_shipments_43p"]
+        .group(1)
+        .strip()
+        if extracted_data["partial_shipments_43p"]
+        else None,
+        "transhipment_43t": extracted_data["transhipment_43t"].group(1).strip()
+        if extracted_data["transhipment_43t"]
+        else None,
+        "port_of_discharge_44f": extracted_data["port_of_discharge_44f"]
+        .group(1)
+        .strip()
+        if extracted_data["port_of_discharge_44f"]
+        else None,
+        "port_of_loading_of_departure_44e": extracted_data[
+            "port_of_loading_of_departure_44e"
+        ]
+        .group(1)
+        .strip()
+        if extracted_data["port_of_loading_of_departure_44e"]
+        else None,
+        "latest_date_of_shipment_44c": extracted_data["latest_date_of_shipment_44c"]
+        .group(1)
+        .strip()
+        if extracted_data["latest_date_of_shipment_44c"]
+        else None,
+        "charges_71d": extracted_data["charges_71d"].group(1).strip()
+        if extracted_data["charges_71d"]
+        else None,
         "additional_conditions_47a": (
             clean_text_common(extracted_data["additional_conditions_47a"].group(1))
-            if extracted_data["additional_conditions_47a"] else None
+            if extracted_data["additional_conditions_47a"]
+            else None
         ),
-        "period_for_presentation_in_days_48": extracted_data["period_for_presentation_in_days_48"].group(1).strip() if extracted_data["period_for_presentation_in_days_48"] else None,
-        "confirmation_instructions_49": extracted_data["confirmation_instructions_49"].group(1).strip() if extracted_data["confirmation_instructions_49"] else None,
-        "instructions_to_the_paying_accepting_negotiating_bank_78": extracted_data["instructions_to_the_paying_accepting_negotiating_bank_78"].group(1).strip() if extracted_data["instructions_to_the_paying_accepting_negotiating_bank_78"] else None,
+        "period_for_presentation_in_days_48": extracted_data[
+            "period_for_presentation_in_days_48"
+        ]
+        .group(1)
+        .strip()
+        if extracted_data["period_for_presentation_in_days_48"]
+        else None,
+        "confirmation_instructions_49": extracted_data["confirmation_instructions_49"]
+        .group(1)
+        .strip()
+        if extracted_data["confirmation_instructions_49"]
+        else None,
+        "instructions_to_the_paying_accepting_negotiating_bank_78": extracted_data[
+            "instructions_to_the_paying_accepting_negotiating_bank_78"
+        ]
+        .group(1)
+        .strip()
+        if extracted_data["instructions_to_the_paying_accepting_negotiating_bank_78"]
+        else None,
         "pdf_path": file_path,
-        "full_text":full_text,
-        "chunks": chunks
     }
-    TransactionRepo.update(db, transaction_id , TransactionUpdate(status="pending", current_process="lc"))
+    TransactionRepo.update(
+        db, transaction_id, TransactionUpdate(status="pending", current_process="lc")
+    )
     return response_data
+
 
 def generate_excel(db: Session, id: int) -> str:
     lc = LCRepo.get_by_id(db, id)
@@ -377,10 +523,12 @@ def generate_excel(db: Session, id: int) -> str:
 
     goods = lc.description_of_good_45a_45b or {}
     for item in goods.get("items", []):
-        ws_goods.append([
-            item.get("item_no"),
-            item.get("description"),
-        ])
+        ws_goods.append(
+            [
+                item.get("item_no"),
+                item.get("description"),
+            ]
+        )
 
     ws_goods.column_dimensions["A"].width = 15
     ws_goods.column_dimensions["B"].width = 120
@@ -396,11 +544,13 @@ def generate_excel(db: Session, id: int) -> str:
 
     docs = lc.document_require_46a or {}
     for item in docs.get("items", []):
-        ws_docs.append([
-            item.get("item_no"),
-            item.get("doc_type"),
-            item.get("conditions"),
-        ])
+        ws_docs.append(
+            [
+                item.get("item_no"),
+                item.get("doc_type"),
+                item.get("conditions"),
+            ]
+        )
 
     ws_docs.column_dimensions["A"].width = 15
     ws_docs.column_dimensions["B"].width = 35
@@ -417,11 +567,13 @@ def generate_excel(db: Session, id: int) -> str:
     for item in docs.get("items", []):
         annexures = item.get("annexures", [])
         for annex in annexures:
-            ws_annex.append([
-                item.get("item_no"),
-                annex.get("code"),
-                annex.get("text"),
-            ])
+            ws_annex.append(
+                [
+                    item.get("item_no"),
+                    annex.get("code"),
+                    annex.get("text"),
+                ]
+            )
 
     ws_annex.column_dimensions["A"].width = 20
     ws_annex.column_dimensions["B"].width = 10
