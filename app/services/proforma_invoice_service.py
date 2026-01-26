@@ -1,17 +1,17 @@
 from sqlalchemy.orm import Session
 from app.repositories.proforma_invoice_repo import ProformaInvoiceRepo
 from app.schemas.proforma_invoice import CreateProformaInvoice
-from app.repositories.transaction_repo import TransactionRepo
-from app.schemas.transaction import TransactionUpdate
 import os
 import jinja2
 from typing import List
 from weasyprint import HTML
-def create_proforma_invoice(db:Session, payload:CreateProformaInvoice , user_id:int):
+
+
+def create_proforma_invoice(db: Session, payload: CreateProformaInvoice, user_id: int):
     return ProformaInvoiceRepo.create(db, payload, user_id)
 
 
-def generate_pdf(pi_id: str , db: Session, output_path: str):
+def generate_pdf(pi_id: str, db: Session, output_path: str):
     pi = ProformaInvoiceRepo.get_by_pi_id(db, pi_id)
     if not pi:
         raise Exception("Proforma Invoice not found")
@@ -20,31 +20,37 @@ def generate_pdf(pi_id: str , db: Session, output_path: str):
     template_path = r"E:\\job\\autoship-hub-server\\app\\templates\\invoice_weasy.html"
     template_dir = os.path.dirname(template_path)
     template_file = os.path.basename(template_path)
-    
+
     env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dir))
     template = env.get_template(template_file)
     # Render HTML
     html_out = template.render(invoice=pi)
-    
+
     # Convert to PDF using WeasyPrint
     HTML(string=html_out).write_pdf(output_path)
     return output_path
 
-def approve_proforma_invoice(db:Session, pi_id:str , approver:str):
+
+def approve_proforma_invoice(db: Session, pi_id: str, approver: str):
     return ProformaInvoiceRepo.update_pi_status(db, pi_id, "approved", approver)
 
-def get_all_proforma_invoice(db:Session):
+
+def get_all_proforma_invoice(db: Session):
     return ProformaInvoiceRepo.get_all(db)
 
-def reject_proforma_invoice(db:Session, pi_id:str):
+
+def reject_proforma_invoice(db: Session, pi_id: str):
     return ProformaInvoiceRepo.update_pi_status(db, pi_id, "rejected")
 
-def get_proforma_invoice_by_pi_id(db:Session, pi_id:str):
+
+def get_proforma_invoice_by_pi_id(db: Session, pi_id: str):
     return ProformaInvoiceRepo.get_by_pi_id(db, pi_id)
 
-def get_proforma_invoice_by_id(db:Session, id:int):
+
+def get_proforma_invoice_by_id(db: Session, id: int):
     return ProformaInvoiceRepo.get_by_id(db, id)
 
-def get_chassis_by_pi_id(db:Session, pi_ids:List[int]):
+
+def get_chassis_by_pi_id(db: Session, pi_ids: List[int]):
     row = ProformaInvoiceRepo.get_chassis_by_pi_id(db, pi_ids)
     return [r[0] for r in row]

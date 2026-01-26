@@ -5,12 +5,6 @@ from fastapi.responses import JSONResponse
 from app.api.v1.router import api_router
 from fastapi.middleware.cors import CORSMiddleware
 
-# Import models to ensure SQLAlchemy can resolve relationships
-from app.models.user import User
-from app.models.lc import LC
-from app.models.proforma_invoice import ProformaInvoice, PiItem
-from app.models.customer import Customer
-from app.models.transaction import Transaction
 
 # Configure logging
 logging.basicConfig(
@@ -21,9 +15,7 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Autoship Hub API")
 
-origins = [
-    "http://localhost:8080"
-]
+origins = ["http://localhost:8080"]
 
 app.add_middleware(
     CORSMiddleware,
@@ -33,13 +25,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     start_time = time.time()
     response = await call_next(request)
     process_time = (time.time() - start_time) * 1000
-    logger.info(f"Request: {request.method} {request.url.path} - Status: {response.status_code} - Duration: {process_time:.2f}ms")
+    logger.info(
+        f"Request: {request.method} {request.url.path} - Status: {response.status_code} - Duration: {process_time:.2f}ms"
+    )
     return response
+
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
@@ -48,5 +44,6 @@ async def global_exception_handler(request: Request, exc: Exception):
         status_code=500,
         content={"detail": "Internal Server Error", "error": str(exc)},
     )
+
 
 app.include_router(api_router, prefix="/api/v1")
