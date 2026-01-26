@@ -4,6 +4,7 @@ from openpyxl.styles import Alignment, Font
 from sqlalchemy.orm import Session
 from app.repositories.lc_repo import LCRepo
 
+
 def generate_excel(db: Session, id: int) -> str:
     lc = LCRepo.get_by_id(db, id)
     if not lc:
@@ -38,15 +39,16 @@ def generate_excel(db: Session, id: int) -> str:
         ("Additional Conditions", lc.additional_conditions_47a),
         ("Period for Presentation in Days", lc.period_for_presentation_in_days_48),
         ("Confirmation Instructions", lc.confirmation_instructions_49),
-        ("Instructions to the Paying Accepting Negotiating Bank", lc.instructions_to_the_paying_accepting_negotiating_bank_78),
+        (
+            "Instructions to the Paying Accepting Negotiating Bank",
+            lc.instructions_to_the_paying_accepting_negotiating_bank_78,
+        ),
     ]
 
     for row, (key, value) in enumerate(headers, start=1):
         ws.cell(row=row, column=1, value=key).font = Font(bold=True)
         ws.cell(row=row, column=2, value=value)
-        ws.cell(row=row, column=2).alignment = Alignment(
-            wrap_text=True, vertical="top"
-        )
+        ws.cell(row=row, column=2).alignment = Alignment(wrap_text=True, vertical="top")
 
     ws.column_dimensions["A"].width = 30
     ws.column_dimensions["B"].width = 100
@@ -61,10 +63,12 @@ def generate_excel(db: Session, id: int) -> str:
 
     goods = lc.description_of_good_45a_45b or {}
     for item in goods.get("items", []):
-        ws_goods.append([
-            item.get("item_no"),
-            item.get("description"),
-        ])
+        ws_goods.append(
+            [
+                item.get("item_no"),
+                item.get("description"),
+            ]
+        )
 
     for row in ws_goods.iter_rows(min_row=2, max_col=2):
         row[1].alignment = Alignment(wrap_text=True, vertical="top")
@@ -83,11 +87,13 @@ def generate_excel(db: Session, id: int) -> str:
 
     docs = lc.document_require_46a or {}
     for item in docs.get("items", []):
-        ws_docs.append([
-            item.get("item_no"),
-            item.get("doc_type"),
-            item.get("conditions"),
-        ])
+        ws_docs.append(
+            [
+                item.get("item_no"),
+                item.get("doc_type"),
+                item.get("conditions"),
+            ]
+        )
 
     for row in ws_docs.iter_rows(min_row=2, max_col=3):
         row[2].alignment = Alignment(wrap_text=True, vertical="top")

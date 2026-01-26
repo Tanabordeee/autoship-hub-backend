@@ -1,5 +1,6 @@
 import re
 
+
 def clean_text_common(text: str) -> str:
     text = re.sub(
         r"THIS CREDIT IS VALID ONLY WHEN USED.*?(?=\n)|"
@@ -37,11 +38,12 @@ def clean_text_common(text: str) -> str:
         r"ARTICLE\s+\d+.*?UCP.*?(?=\n)|",
         "",
         text,
-        flags=re.IGNORECASE | re.MULTILINE
+        flags=re.IGNORECASE | re.MULTILINE,
     )
 
     text = re.sub(r"\n\s*\n+", "\n", text).strip()
     return text
+
 
 def clean_45a_text(text: str) -> str:
     # ตัดทุกอย่างหลัง noise marker (STOP WORDS)
@@ -64,6 +66,7 @@ def clean_45a_text(text: str) -> str:
     # cleanup whitespace
     text = re.sub(r"\n\s*\n+", "\n", text).strip()
     return text
+
 
 def extract_document_require_46A(full_text: str):
     patterns = {
@@ -102,17 +105,12 @@ def extract_document_require_46A(full_text: str):
 
         text = re.sub(r"\n\s*\n+", "\n", text).strip()
 
-        item = {
-            "item_no": item_no,
-            "doc_type": doc_types[item_no],
-            "conditions": text
-        }
+        item = {"item_no": item_no, "doc_type": doc_types[item_no], "conditions": text}
 
         # =================================================
         # SPECIAL FORMAT : ITEM 6
         # =================================================
         if item_no == 6:
-
             annexures = []
 
             annexure_block_match = re.search(
@@ -120,7 +118,7 @@ def extract_document_require_46A(full_text: str):
                 r"THIS\s+REPORT\s+SHOULD\s+HAVE\s+THE\s+FOLLOWING\s+ANNEXTURE\.(.+?)"
                 r"(?=\n?\s*THE\s+STAMP\s+OF|\n?\s*\d+\)|$)",
                 item["conditions"],
-                flags=re.DOTALL | re.IGNORECASE
+                flags=re.DOTALL | re.IGNORECASE,
             )
 
             if annexure_block_match:
@@ -129,13 +127,13 @@ def extract_document_require_46A(full_text: str):
                 annexure_matches = re.findall(
                     r"\(([A-C])\)\s*(.+?)(?=\n?\([A-C]\)|$)",
                     annexure_block,
-                    flags=re.DOTALL | re.IGNORECASE
+                    flags=re.DOTALL | re.IGNORECASE,
                 )
 
                 annexures = [
                     {
                         "code": code.upper(),
-                        "text": re.sub(r"\n\s*\n+", "\n", body).strip()
+                        "text": re.sub(r"\n\s*\n+", "\n", body).strip(),
                     }
                     for code, body in annexure_matches
                 ]
@@ -148,11 +146,9 @@ def extract_document_require_46A(full_text: str):
                 r"THIS\s+REPORT\s+SHOULD\s+HAVE\s+THE\s+FOLLOWING\s+ANNEXTURE\..*",
                 "",
                 item["conditions"],
-                flags=re.DOTALL | re.IGNORECASE
+                flags=re.DOTALL | re.IGNORECASE,
             ).strip()
 
         items.append(item)
 
-    return {
-        "items": items
-    }
+    return {"items": items}

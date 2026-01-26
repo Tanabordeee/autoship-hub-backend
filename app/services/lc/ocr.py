@@ -2,6 +2,7 @@ import base64
 import requests
 import io
 
+
 def ocr_image(image, model: str):
     """Helper function to OCR a single image"""
     buf = io.BytesIO()
@@ -12,14 +13,11 @@ def ocr_image(image, model: str):
         "model": model,
         "prompt": "อ่านข้อความทั้งหมดในภาพนี้อย่างละเอียด\n- รักษาลำดับบรรทัด\n- ไม่สรุป\n- ไม่ตีความ\n- พิมพ์ตามต้นฉบับ 100%",
         "images": [img_base64],
-        "stream": False
+        "stream": False,
     }
 
-    r = requests.post(
-        "http://localhost:11434/api/generate",
-        json=payload
-    )
-    
+    r = requests.post("http://localhost:11434/api/generate", json=payload)
+
     try:
         data = r.json()
         if "response" in data:
