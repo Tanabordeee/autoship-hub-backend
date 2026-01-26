@@ -8,7 +8,8 @@ from app.schemas.lc import LCCreate
 from app.repositories.lc_repo import LCRepo
 from app.repositories.transaction_repo import TransactionRepo
 from app.schemas.transaction import TransactionUpdate
-from .ocr import ocr_image
+from app.core.config import settings
+from app.services.ocr_service import ocr_image
 from .parser import clean_text_common, clean_45a_text, extract_document_require_46A
 
 
@@ -50,8 +51,7 @@ def extract_lc(db: Session, file: UploadFile, user_id: int, transaction_id: int)
         buffer.write(file.file.read())
 
     PDF_PATH = file_path
-    MODEL = "scb10x/typhoon-ocr1.5-3b:latest"
-    POPPLER_PATH = r"E:\poppler\poppler-25.12.0\Library\bin"
+    POPPLER_PATH = settings.POPPLER_PATH
 
     # Convert PDF to images (all pages)
     pages = convert_from_path(PDF_PATH, dpi=300, poppler_path=POPPLER_PATH)
@@ -59,7 +59,7 @@ def extract_lc(db: Session, file: UploadFile, user_id: int, transaction_id: int)
     results = []
     for idx, page in enumerate(pages):
         print(f"OCR page {idx + 1}/{len(pages)}")
-        text = ocr_image(page, MODEL)
+        text = ocr_image(page)
         results.append({"page": idx + 1, "text": text.strip()})
 
     # Combine all text
