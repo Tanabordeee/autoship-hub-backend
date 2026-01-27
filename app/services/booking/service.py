@@ -1,8 +1,14 @@
 import pdfplumber
 import re
+from app.repositories.booking import BookingRepo
+from app.schemas.booking import CreateBooking
+from sqlalchemy.orm import Session
+from app.repositories.transaction_repo import TransactionRepo
+from app.repositories.proforma_invoice_repo import ProformaInvoiceRepo
+from app.schemas.transaction import TransactionUpdate
 
 
-def extract_booking(file):
+def extract_booking(db: Session, file, transaction_id: int):
     text = ""
     file.file.seek(0)
     with pdfplumber.open(file.file) as pdf:
@@ -62,5 +68,22 @@ def extract_booking(file):
         "cut_off_vgm": safe_search(r"Cut\s*Off\s*VGM\s*:\s*(.*?)(?=\n|$)", text),
         "booking_name": safe_search(r"(RIVA\s*LOGISTICS\s*CO\.,LTD\.)", text),
     }
-
+    TransactionRepo.update(
+        db,
+        transaction_id,
+        TransactionUpdate(status="pending", current_process="booking"),
+    )
     return result
+
+
+def create_booking(
+    db: Session, payload: CreateBooking, user_id: int, transaction_id: int
+):
+    booking = BookingRepo.create(db, payload, user_id)
+    ProformaInvoiceRepo.update_booking_pi_items(db, payload.chassis, booking.id)
+    TransactionRepo.update(
+        db,
+        transaction_id,
+        TransactionUpdate(status="completed", current_process="booking"),
+    )
+    return booking
