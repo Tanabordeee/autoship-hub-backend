@@ -39,3 +39,6 @@ class BookingRepo:
         db.commit()
         db.refresh(booking)
         return booking
+
+    def get_by_id(db: Session, id: int):
+        return db.query(Booking).filter(Booking.id == id).first()

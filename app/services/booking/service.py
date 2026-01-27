@@ -6,6 +6,9 @@ from sqlalchemy.orm import Session
 from app.repositories.transaction_repo import TransactionRepo
 from app.repositories.proforma_invoice_repo import ProformaInvoiceRepo
 from app.schemas.transaction import TransactionUpdate
+from openpyxl import Workbook
+from openpyxl.styles import Alignment, Font
+from openpyxl.utils import get_column_letter
 
 
 def extract_booking(db: Session, file, transaction_id: int):
@@ -86,4 +89,61 @@ def create_booking(
         transaction_id,
         TransactionUpdate(status="completed", current_process="booking"),
     )
-    return booking
+    return {"id": booking.id}
+
+
+def create_booking_excel(db: Session, id: int):
+    booking = BookingRepo.get_by_id(db, id)
+    if not booking:
+        raise ValueError("Booking not found")
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Booking"
+
+    headers = [
+        ("booking_no", "Booking No"),
+        ("booking_name", "Booking Name"),
+        ("date", "Date"),
+        ("carrier", "Carrier"),
+        ("carrier_booking_no", "Carrier Booking No"),
+        ("shipper", "Shipper"),
+        ("consignee", "Consignee"),
+        ("port_of_loading", "Port of Loading"),
+        ("port_of_disch", "Port of Discharge"),
+        ("port_of_del", "Port of Delivery"),
+        ("etd", "ETD"),
+        ("eta_dest", "ETA Destination"),
+        ("cut_off_vgm", "Cut-off VGM"),
+        ("cut_off_si", "Cut-off SI"),
+        ("closing_date", "Closing Date"),
+        ("return_date", "Return Date"),
+        ("return_yard", "Return Yard"),
+        ("cy_date", "CY Date"),
+        ("cy_at", "CY At"),
+        ("feeder", "Feeder"),
+        ("place_of_rec", "Place of Receipt"),
+        ("paperless_code", "Paperless Code"),
+        ("fob_at", "FOB At"),
+        ("quantity", "Quantity"),
+    ]
+
+    # Header row
+    for col, (_, title) in enumerate(headers, start=1):
+        cell = ws.cell(row=1, column=col, value=title)
+        cell.font = Font(bold=True)
+        cell.alignment = Alignment(horizontal="center")
+
+    # Data row
+    for col, (field, _) in enumerate(headers, start=1):
+        value = getattr(booking, field)
+        ws.cell(row=2, column=col, value=value)
+
+    # Auto width
+    for col in range(1, len(headers) + 1):
+        ws.column_dimensions[get_column_letter(col)].width = 20
+
+    file_path = f"/tmp/booking_{booking.id}.xlsx"
+    wb.save(file_path)
+
+    return file_path

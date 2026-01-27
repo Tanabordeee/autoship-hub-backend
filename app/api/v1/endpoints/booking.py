@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, UploadFile, File, Form, Body
 from app.api.deps import get_db
+from fastapi.responses import FileResponse
 
 # from app.services.booking_service import create_booking
 from app.services.booking.service import extract_booking
@@ -10,11 +11,13 @@ from app.api.deps import get_current_user
 from app.models.user import User
 from app.schemas.booking import CreateBooking
 from app.services.booking.service import create_booking
+from app.schemas.booking import BookingCreateResponse
+from app.services.booking.service import create_booking_excel
 
 router = APIRouter()
 
 
-@router.post("/bookings")
+@router.post("/bookings", response_model=BookingCreateResponse)
 def create_booking_endpoint(
     payload: CreateBooking = Body(..., embed=True),
     db: Session = Depends(get_db),
@@ -26,6 +29,20 @@ def create_booking_endpoint(
     except (ValueError, TypeError):
         transaction_id = 0
     return create_booking(db, payload, current_user.id, transaction_id)
+
+
+@router.get("/booking-excel/{id}")
+def booking_excel_endpoint(
+    id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    file_path = create_booking_excel(db, id)
+    return FileResponse(
+        file_path,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        filename=f"booking_{id}.xlsx",
+    )
 
 
 @router.post("/extract-booking")

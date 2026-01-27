@@ -34,6 +34,10 @@ class CreateBooking(BaseModel):
     transaction_id: Optional[int] = None
 
 
+class BookingCreateResponse(BaseModel):
+    id: int
+
+
 class Booking(BaseModel):
     id: int
     at_before: Optional[str] = None
