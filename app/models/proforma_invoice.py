@@ -80,8 +80,12 @@ class PiItem(Base):
     )
     parent_items = Column(BigInteger, ForeignKey("pi_items.id", ondelete="CASCADE"))
     item_type = Column(Text)
+    booking_id = Column(
+        BigInteger, ForeignKey("booking.id", ondelete="SET NULL"), nullable=True
+    )
     __table_args__ = (UniqueConstraint("pi_id", "item_no", name="uq_pi_items_item_no"),)
 
     # Relationships
     proforma_invoice = relationship("ProformaInvoice", back_populates="items")
     parent = relationship("PiItem", remote_side=[id], backref="children")
+    booking = relationship("Booking", backref="pi_items")
