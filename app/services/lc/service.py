@@ -11,6 +11,7 @@ from app.schemas.transaction import TransactionUpdate
 from app.core.config import settings
 from app.services.ocr_service import ocr_image
 from .parser import clean_text_common, clean_45a_text, extract_document_require_46A
+from app.repositories.proforma_invoice_repo import ProformaInvoiceRepo
 
 
 def create_lc(db: Session, payload: LCCreate, user_id: int, pi_id: list[int]):
@@ -34,7 +35,13 @@ def create_lc(db: Session, payload: LCCreate, user_id: int, pi_id: list[int]):
     else:
         # First version
         payload.versions = 1
-
+    transaction_ids = ProformaInvoiceRepo.get_transaction_by_pi_id(db, pi_id)
+    for transaction_id in transaction_ids:
+        TransactionRepo.update(
+            db,
+            transaction_id,
+            TransactionUpdate(status="completed", current_process="lc"),
+        )
     return LCRepo.create(db, payload, user_id, pi_id)
 
 
