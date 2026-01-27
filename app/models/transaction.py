@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, Text
 from sqlalchemy.orm import relationship
-from app.db.base import Base
+from app.db.base_class import Base
 
 
 class Transaction(Base):
@@ -10,4 +10,7 @@ class Transaction(Base):
     current_process = Column(Text, nullable=False)
     proforma_invoices = relationship(
         "ProformaInvoice", back_populates="transaction", cascade="all, delete-orphan"
+    )
+    bookings = relationship(
+        "Booking", back_populates="transaction", cascade="all, delete-orphan"
     )

@@ -4,6 +4,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from app.api.v1.router import api_router
 from fastapi.middleware.cors import CORSMiddleware
+import app.db.base
 
 
 # Configure logging

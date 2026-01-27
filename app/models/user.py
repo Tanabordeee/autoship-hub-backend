@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import relationship
-from app.db.base import Base
+from app.db.base_class import Base
+
 
 class User(Base):
     __tablename__ = "users"
@@ -12,3 +13,5 @@ class User(Base):
 
     proforma_invoices = relationship("ProformaInvoice", back_populates="user")
     lcs = relationship("LC", back_populates="user", lazy="dynamic")
+    # ฝั่งแม่ของ booking
+    bookings = relationship("Booking", back_populates="user")

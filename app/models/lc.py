@@ -1,14 +1,17 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, BigInteger, Text
+from sqlalchemy import Column, Integer, DateTime, ForeignKey, BigInteger, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import JSONB
-from app.db.base import Base
+from app.db.base_class import Base
+
 
 class LC(Base):
     __tablename__ = "lc"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
-    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    created_at = Column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
     beneficiary_59 = Column(Text)
     applicant_50 = Column(Text)
     description_of_good_45a_45b = Column(JSONB)
@@ -49,3 +52,4 @@ class LC(Base):
     # Relationship
     user = relationship("User", back_populates="lcs")
     proforma_invoices = relationship("ProformaInvoice", back_populates="lc")
+    bookings = relationship("Booking", back_populates="lc")
