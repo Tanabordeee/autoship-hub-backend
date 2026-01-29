@@ -5,3 +5,5 @@ from app.models.proforma_invoice import ProformaInvoice
 from app.models.lc import LC
 from app.models.customer import Customer
 from app.models.transaction import Transaction
+from app.models.vehicle_register import VehicleRegister
+from app.models.si import SI

@@ -15,3 +15,5 @@ class User(Base):
     lcs = relationship("LC", back_populates="user", lazy="dynamic")
     # ฝั่งแม่ของ booking
     bookings = relationship("Booking", back_populates="user")
+    vehicle_registers = relationship("VehicleRegister", back_populates="user")
+    si = relationship("SI", back_populates="user")

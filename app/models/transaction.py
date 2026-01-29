@@ -14,3 +14,6 @@ class Transaction(Base):
     bookings = relationship(
         "Booking", back_populates="transaction", cascade="all, delete-orphan"
     )
+    vehicle_registers = relationship(
+        "VehicleRegister", back_populates="transaction", cascade="all, delete-orphan"
+    )
