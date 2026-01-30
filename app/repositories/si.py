@@ -12,6 +12,7 @@ class SI_Repository:
             port_of_discharge=payload.port_of_discharge,
             number_of_original_bs=payload.number_of_original_bs,
             no_of_packages=payload.no_of_packages,
+            seal_no=payload.seal_no,
             user_id=payload.user_id,
         )
         db.add(si)

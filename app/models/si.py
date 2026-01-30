@@ -12,5 +12,6 @@ class SI(Base):
     port_of_discharge = Column(Text)
     number_of_original_bs = Column(Text)
     no_of_packages = Column(Text)
+    seal_no = Column(Text)
     user_id = Column(Integer, ForeignKey("users.id"))
     user = relationship("User", back_populates="si")

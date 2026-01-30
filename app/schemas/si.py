@@ -8,6 +8,7 @@ class SICreate(BaseModel):
     port_of_discharge: str
     number_of_original_bs: str
     no_of_packages: str
+    seal_no: str
     user_id: int
     pi_id: int
     lc_id: int

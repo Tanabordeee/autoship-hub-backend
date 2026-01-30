@@ -58,6 +58,7 @@ def create_si(db: Session, payload: SICreate):
         number_of_original_bs=number_of_original_bs,
         original_bs=payload.number_of_original_bs,
         booking=booking,
+        seal_no=payload.seal_no,
         vehicle_register=vehicle_register,
         proforma_invoice=proforma_invoice,
         as_per_proforma_invoice=as_per_proforma_invoice,
