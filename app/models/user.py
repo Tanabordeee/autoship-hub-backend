@@ -17,3 +17,4 @@ class User(Base):
     bookings = relationship("Booking", back_populates="user")
     vehicle_registers = relationship("VehicleRegister", back_populates="user")
     si = relationship("SI", back_populates="user")
+    bls = relationship("BL", back_populates="user")
