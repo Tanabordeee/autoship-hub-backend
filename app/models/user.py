@@ -10,7 +10,7 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     password = Column(String, nullable=False)
     role = Column(String, nullable=False)
-
+    name = Column(String, nullable=False)
     proforma_invoices = relationship("ProformaInvoice", back_populates="user")
     lcs = relationship("LC", back_populates="user", lazy="dynamic")
     # ฝั่งแม่ของ booking

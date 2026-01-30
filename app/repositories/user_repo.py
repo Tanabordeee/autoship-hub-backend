@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from app.models.user import User
 
+
 class UserRepository:
     def get_by_email(self, db: Session, email: str):
         return db.query(User).filter(User.email == email).first()
@@ -11,5 +12,9 @@ class UserRepository:
         db.commit()
         db.refresh(user)
         return user
+
+    def get_all_approver(self, db: Session):
+        return db.query(User).filter(User.role == "employee").all()
+
 
 user_repo = UserRepository()
