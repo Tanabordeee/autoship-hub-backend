@@ -15,3 +15,7 @@ class SICreate(BaseModel):
     booking_id: int
     output_path: str
     transaction_id: int
+
+
+class ConfirmSi(BaseModel):
+    transaction_id: int
