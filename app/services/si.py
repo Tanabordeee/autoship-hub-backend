@@ -82,7 +82,7 @@ def create_si(db: Session, payload: SICreate):
         payload.transaction_id,
         TransactionUpdate(status="pending", current_process="si"),
     )
-    return output_path
+    return {"output_path": output_path, "si_id": si.id}
 
 
 def confirm_si(db: Session, transaction_id: int):

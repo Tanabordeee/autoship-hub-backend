@@ -19,3 +19,6 @@ class SI_Repository:
         db.commit()
         db.refresh(si)
         return si
+
+    def get_by_id(db: Session, id: int):
+        return db.query(SI).filter(SI.id == id).first()
