@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <div class='text-xs'>
+        <div>
+            <div class="mb-16">
+                {{ lc.beneficiary_59
+                | replace('\n', '<br />')
+                | safe }}
+            </div>
+            <div class="mb-16">
+                <p>TO ORDER OF COMMERCIAL BANK OF CEYLON PLC</p>
+                <p>IMPORTS DEPT ., NO.21, SIR RAZIK FAREED MAWATHA</p>
+                <p>COLOMBO 07, SRI LANKA</p>
+            </div>
+            <div class="border-l border-black pl-2 mb-16">
+                {{ lc.applicant_50
+                | replace('\n', '<br />')
+                | safe }}
+            </div>
+        </div>
+        <table>
+            <tbody>
+                <tr>
+                    <td></td>
+                    <td class="px-6">{{lc.port_of_loading_of_departure_44e}}</td>
+                    <td></td>
+                    <td></td>
+                </tr>
+
+                <tr>
+                    <td class="whitespace-nowrap">{{booking.feeder}}</td>
+                    <td class="px-6 whitespace-nowrap">{{port_of_loading}}</td>
+                    <td></td>
+                    <td></td>
+                </tr>
+
+                <tr>
+                    <td class="whitespace-nowrap">{{port_of_discharge}}</td>
+                    <td class="px-6 whitespace-nowrap">{{port_of_discharge}}</td>
+                    <td class="px-6">BANGKOK</td>
+                    <td class="px-6 whitespace-nowrap">
+                        {{number_of_original_bs}}
+                    </td>
+                </tr>
+                <tr>
+                    <td class="align-top py-4">PAP</td>
+                    <td class="align-top py-4">
+                        <table class="w-full table-fixed">
+                            <colgroup>
+                                <col class="w-20" />
+                                <col class="w-auto" />
+                            </colgroup>
+                            <tbody>
+                                <tr>
+                                    <td class="whitespace-nowrap px-6">{{no_of_packages}} UNIT</td>
+                                    <td class="whitespace-nowrap font-bold px-6"> {{no_of_packages}} UNIT</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </td>
+                    <td class='align-top py-4 px-8 whitespace-nowrap'>{{gross_weight}}</td>
+                    <td class="align-top py-4 px-8 whitespace-nowrap">{{measurement}}</td>
+                </tr>
+
+                <tr>
+                    <td></td>
+                    <td colSpan="3" class="break-words whitespace-normal pl-[6.5rem]">
+                        {% for item in lc.description_of_good_45a_45b['items'] %}
+                        {{ item.description | replace('\n', '<br />') | safe }}
+                        {% endfor %}
+                    </td>
+                </tr>
+
+                <tr>
+                    <td></td>
+                    <td colspan="3" class="break-words whitespace-normal pt-4 pl-[6.5rem] ">
+                        CERTIFYING THAT VEHICLE IS {{as_per_proforma_invoice}}
+                    </td>
+                </tr>
+
+                <tr>
+                    <td></td>
+                    <td colspan="3" class="break-words whitespace-normal pt-4 pl-[6.5rem]">
+                        <div class='flex gap-20'>
+                            <div class="flex flex-col">
+                                <span>CHASSIS :</span>
+                                <span>{{vehicle_register.chassis_no}}</span>
+                            </div>
+                            <div class="flex flex-col">
+                                <span>ENGINE :</span>
+                                <span>{{vehicle_register.engine_no}}</span>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td colspan="3" class="break-words whitespace-normal pt-4 pl-[6.5rem] ">THE LETTER OF CREDIT
+                        NUMBER. {{lc.docmentary_credit_number_20}} DATE OF ISSUE : {{lc.date_of_issue_31c}} - COMMERCIAL
+                        BANK OF CEYLON PLC COLOMBO</td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td colspan="3" class="break-words whitespace-normal pt-4 pl-[6.5rem] ">NAME, ADDRESS AND
+                        TELEPHONE NUMBER OF THE VESSEL 'S LOCAL AGENT</td>
+                </tr>
+                <tr>
+                    <td class="whitespace-nowrap pt-4 ">
+                        <div class='font-medium'>CONTAINER NO.& SEAL NO.</div>
+                        <div>{{booking.carrier_booking_no}} / 30252665</div>
+                    </td>
+                    <td colspan="3" class="pl-[6.5rem]  pt-4 break-words whitespace-normal ">
+                        <div class='font-bold pt-5'>"FREIGHT PREPAID"</div>
+                        <div>SHIPPED ON BOARD DATE : {{etd}} AT LAEM CHABANG, PORT IN THAILAND</div>
+                        <div>{{booking.feeder}}</div>
+                    </td>
+                </tr>
+                <tr>
+                    <td class='font-bold pt-5'>(TOTAL : ONE UNIT ONLY)</td>
+                </tr>
+                <tr>
+                    <td class='whitespace-nowrap pt-4 '>OCEAN FREIGHT AS ARRANGED</td>
+                    <td colspan="2" class="pl-[8rem]  pt-4 break-words whitespace-normal ">BANGKOK THAILAND :
+                        {{etd}}</td>
+
+                </tr>
+            </tbody>
+        </table>
+
+    </div>
+</body>
+
+</html>

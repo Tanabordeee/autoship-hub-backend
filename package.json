@@ -1,0 +1,25 @@
+{
+  "name": "autoship-hub-server",
+  "version": "1.0.0",
+  "description": "This repository contains the backend service for Autoship Hub, a platform designed to streamline shipping and trade documentation processes. It is built using Python and FastAPI, providing a robust RESTful API for managing users, proforma invoices, and letters of credit (LCs).",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build:css": "tailwindcss -i ./input.css -o ./static/tailwind.css --minify"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Tanabordeee/autoship-hub-backend.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Tanabordeee/autoship-hub-backend/issues"
+  },
+  "homepage": "https://github.com/Tanabordeee/autoship-hub-backend#readme",
+  "devDependencies": {
+    "tailwindcss": "^3.4.1"
+  }
+}
