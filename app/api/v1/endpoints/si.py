@@ -17,11 +17,14 @@ def create_si_endpoint(
     payload: SICreate = Body(...),
     current_user: User = Depends(get_current_user),
 ):
-    output_path = create_si(db, payload)
-    if output_path:
-        filename = output_path.split("\\")[-1]
+    result = create_si(db, payload)
+    if result:
+        filename = result["output_path"].split("\\")[-1]
         return FileResponse(
-            output_path, media_type="application/pdf", filename=filename
+            result["output_path"],
+            media_type="application/pdf",
+            filename=filename,
+            headers={"X-SI-ID": str(result["si_id"])},
         )
     return {"error": "Failed to generate SI"}
 
