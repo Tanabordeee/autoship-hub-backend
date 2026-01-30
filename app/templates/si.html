@@ -47,7 +47,7 @@
                     <td class="px-6 whitespace-nowrap">{{port_of_discharge}}</td>
                     <td class="px-6">BANGKOK</td>
                     <td class="px-6 whitespace-nowrap">
-                        {{number_of_original_bs}}
+                        {{number_of_original_bs}} ({{original_bs}})
                     </td>
                 </tr>
                 <tr>
@@ -88,16 +88,14 @@
 
                 <tr>
                     <td></td>
-                    <td colspan="3" class="break-words whitespace-normal pt-4 pl-[6.5rem]">
-                        <div class='flex gap-20'>
-                            <div class="flex flex-col">
-                                <span>CHASSIS :</span>
-                                <span>{{vehicle_register.chassis_no}}</span>
-                            </div>
-                            <div class="flex flex-col">
-                                <span>ENGINE :</span>
-                                <span>{{vehicle_register.engine_no}}</span>
-                            </div>
+                    <td colspan="3" style="padding-left:6.5rem; padding-top:10px;">
+                        <div style="display: inline-block; width: 45%; vertical-align: top;">
+                            <strong>CHASSIS :</strong>
+                            <div>{{ vehicle_register.chassis_no }}</div>
+                        </div>
+                        <div style="display: inline-block; width: 45%; vertical-align: top;">
+                            <strong>ENGINE :</strong>
+                            <div>{{ vehicle_register.engine_no }}</div>
                         </div>
                     </td>
                 </tr>
