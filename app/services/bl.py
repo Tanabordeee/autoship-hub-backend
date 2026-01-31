@@ -12,7 +12,6 @@ from app.repositories.vehicle_register import VehicleRegisterRepo
 from app.repositories.proforma_invoice_repo import ProformaInvoiceRepo
 from app.repositories.si import SI_Repository
 from datetime import datetime
-import num2words
 
 
 def extract_block(text, label):
