@@ -107,6 +107,7 @@ def get_check_data(db: Session, payload):
         "booking": booking,
         "vehicle_register": vehicle_register,
         "proforma_invoice": proforma_invoice,
+        "si": si,
         "as_per_proforma_invoice": as_per_proforma_invoice,
         "etd": etd,
         "number_of_original_bs": si.number_of_original_bs,
