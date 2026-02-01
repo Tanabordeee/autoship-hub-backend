@@ -11,7 +11,6 @@ class BLCheck(BaseModel):
 
 class BLCreate(BaseModel):
     user_id: int
-    version_bl: str
     bl_number: str
     jo_number: str
     shipper: str
@@ -23,11 +22,12 @@ class BLCreate(BaseModel):
     ocean_vessel: str
     place_of_delivery: str
     freight_payable_at: str
-    number_of_original_bl: str
+    number_of_original_bs: str
     gross_weight: str
     measurement: str
     cy_cf: str
-    description_of_goods: str
+    description_of_good: str
     container: str
     seal_no: str
-    size: str
+    size_no: str
+    version_bl: int

@@ -12,6 +12,9 @@ from app.repositories.vehicle_register import VehicleRegisterRepo
 from app.repositories.proforma_invoice_repo import ProformaInvoiceRepo
 from app.repositories.si import SI_Repository
 from datetime import datetime
+from app.repositories.bl import BLRepository
+from app.schemas.bl import BLCreate
+from bs4 import BeautifulSoup
 
 
 def extract_block(text, label):
@@ -44,13 +47,16 @@ def extract_bl(db: Session, file, transaction_id: str):
     data["port_of_discharge"] = extract_single(
         text, r"Port of Discharge.*?\n(.*?)(?=\n[A-Z][A-Za-z /]{3,}\n|\n\n|$)"
     )
-
+    if not data["port_of_discharge"]:
+        data["port_of_discharge"] = extract_single(
+            text, r"Place of Delivery\s*\n\s*([A-Z ,]+)\s*\/"
+        )
     data["freight_payable_at"] = extract_single(
         text, r"Freight Payable at\s*\n(.*?)(?=\n[A-Z][A-Za-z /]{3,}\n|\n\n|$)"
     )
 
-    data["number_of_original_bl"] = extract_single(
-        text, r"Number of Original Bs/L\s*\n(.*?)(?=\n[A-Z][A-Za-z /]{3,}\n|\n\n|$)"
+    data["number_of_original_bs"] = extract_single(
+        text, r"Number of Original Bs\/L\s*\n\s*([^\n\/]+)"
     )
     data["gross_weight"] = extract_single(text, r"(\d{1,3}(?:,\d{3})*\.\d+\s*KGS)")
 
@@ -60,16 +66,23 @@ def extract_bl(db: Session, file, transaction_id: str):
     data["consignee"] = extract_block(text, "Consignee")
     data["notify_party"] = extract_block(text, "Notify Party")
     data["cy_cf"] = extract_single(text, r"SHIPPED\s+ON\s+BOARD\s*:\s*([^</]+)")
-    data["description_of_goods"] = extract_single(
-        text, r"(SHIPPER'S\s+LOAD\s+COUNT[\s\S]*?)(?=\d{1,3},\d{3}\.?\d*\s*KGS)"
+    soup = BeautifulSoup(text, "html.parser")
+    table = soup.find("table")
+
+    rows = table.find_all("tr")
+    headers = [td.get_text(strip=True) for td in rows[0].find_all("td")]
+
+    desc_idx = headers.index("Description of Packages and Goods")
+    data["description_of_good"] = (
+        rows[1].find_all("td")[desc_idx].get_text(" ", strip=True)
     )
-    container_seal_size_match = re.search(
-        r"([A-Z]{4}\d{7})\/(\d{6,})\/(\d{2}'HQ)", text
+    container_match = re.search(
+        r"([A-Z]{4}\d{7})\/(\d{6,})\/([0-9]{2}'(?:HQ|GP|RF))", text
     )
-    if container_seal_size_match:
-        data["container"] = container_seal_size_match.group(1) or None
-        data["seal_no"] = container_seal_size_match.group(2) or None
-        data["size"] = container_seal_size_match.group(3) or None
+    if container_match:
+        data["container"] = container_match.group(1)
+        data["seal_no"] = container_match.group(2)
+        data["size_no"] = container_match.group(3)
     data["place_of_receipt"] = extract_single(
         text,
         r"Place of receipt\s*\n\s*([A-Z ,]+)(?:\/)?",
@@ -83,6 +96,7 @@ def extract_bl(db: Session, file, transaction_id: str):
         int(transaction_id),
         TransactionUpdate(status="pending", current_process="bl"),
     )
+    data["text"] = text
     return data
 
 
@@ -111,3 +125,26 @@ def get_check_data(db: Session, payload):
         "etd": etd,
         "number_of_original_bs": si.number_of_original_bs,
     }
+
+
+def create_bl(db: Session, payload: BLCreate):
+    existing_bl = BLRepository.get_latest_version_by_bl_no(db, payload.bl_number)
+    if existing_bl:
+        # Increment version
+        new_version = (existing_bl.version_bl or 0) + 1
+
+        # Merge None fields from new payload with existing LC data
+        payload_dict = payload.model_dump()
+
+        for field, value in payload_dict.items():
+            if value is None and hasattr(existing_bl, field):
+                # If new value is None, use the old value
+                old_value = getattr(existing_bl, field)
+                setattr(payload, field, old_value)
+
+        # Set the new version number
+        payload.version_bl = new_version
+    else:
+        # First version
+        payload.version_bl = 1
+    return BLRepository.create(db, payload)

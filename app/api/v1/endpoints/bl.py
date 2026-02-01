@@ -5,6 +5,8 @@ from app.api.deps import get_current_user
 from app.models.user import User
 from app.services.bl import extract_bl, get_check_data
 from app.schemas.bl import BLCheck
+from app.services.bl import create_bl
+from app.schemas.bl import BLCreate
 
 router = APIRouter()
 
@@ -27,3 +29,12 @@ def get_check_bl_endpoint(
     current_user: User = Depends(get_current_user),
 ):
     return get_check_data(db, payload)
+
+
+@router.post("/create-bl")
+def create_bl_endpoint(
+    payload: BLCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return create_bl(db, payload)
