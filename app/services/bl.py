@@ -100,6 +100,30 @@ def extract_bl(db: Session, file, transaction_id: str):
     return data
 
 
+def confirm_bl(db: Session, transaction_id: int):
+    try:
+        TransactionRepo.update(
+            db,
+            int(transaction_id),
+            TransactionUpdate(status="confirm", current_process="bl"),
+        )
+    except Exception as e:
+        print(e)
+    return True
+
+
+def reject_bl(db: Session, transaction_id: int):
+    try:
+        TransactionRepo.update(
+            db,
+            int(transaction_id),
+            TransactionUpdate(status="reject", current_process="bl"),
+        )
+    except Exception as e:
+        print(e)
+    return True
+
+
 def get_check_data(db: Session, payload):
     lc = LCRepo.get_by_id(db, payload.lc_id)
     booking = BookingRepo.get_by_id(db, payload.booking_id)

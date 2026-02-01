@@ -31,3 +31,7 @@ class BLCreate(BaseModel):
     seal_no: str
     size_no: str
     version_bl: int
+
+
+class TransactionStatusUpdate(BaseModel):
+    transaction_id: int
