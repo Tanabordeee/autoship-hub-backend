@@ -7,6 +7,7 @@ from app.api.v1.endpoints import booking
 from app.api.v1.endpoints import vehicle_register
 from app.api.v1.endpoints import si
 from app.api.v1.endpoints import bl
+from app.api.v1.endpoints import bv
 
 api_router = APIRouter()
 api_router.include_router(users.router, tags=["users"])
@@ -17,3 +18,4 @@ api_router.include_router(booking.router, tags=["booking"])
 api_router.include_router(vehicle_register.router, tags=["vehicle_register"])
 api_router.include_router(si.router, tags=["si"])
 api_router.include_router(bl.router, tags=["bl"])
+api_router.include_router(bv.router, tags=["bv"])

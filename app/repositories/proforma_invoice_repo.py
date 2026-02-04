@@ -158,6 +158,15 @@ class ProformaInvoiceRepo:
         db.refresh(pi)
         return pi
 
+    def update_bv_pi_items(db: Session, chassis: str, bv_id: int):
+        pi = db.query(PiItem).filter(PiItem.description == chassis).first()
+        if not pi:
+            raise BaseException("Pi Item not found")
+        pi.bv_id = bv_id
+        db.commit()
+        db.refresh(pi)
+        return pi
+
     def get_transaction_by_pi_id(db: Session, pi_ids: List[int]):
         transactions = (
             db.query(ProformaInvoice.transaction_id)

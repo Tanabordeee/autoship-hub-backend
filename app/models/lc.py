@@ -54,3 +54,4 @@ class LC(Base):
     proforma_invoices = relationship("ProformaInvoice", back_populates="lc")
     bookings = relationship("Booking", back_populates="lc")
     vehicle_registers = relationship("VehicleRegister", back_populates="lc")
+    bvs = relationship("BV", back_populates="lc")

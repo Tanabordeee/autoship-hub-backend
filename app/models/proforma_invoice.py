@@ -88,6 +88,7 @@ class PiItem(Base):
         ForeignKey("vehicle_register.id", ondelete="SET NULL"),
         nullable=True,
     )
+    bv_id = Column(BigInteger, ForeignKey("bv.id", ondelete="SET NULL"), nullable=True)
     __table_args__ = (UniqueConstraint("pi_id", "item_no", name="uq_pi_items_item_no"),)
 
     # Relationships
@@ -95,3 +96,4 @@ class PiItem(Base):
     parent = relationship("PiItem", remote_side=[id], backref="children")
     booking = relationship("Booking", backref="pi_items")
     vehicle_register = relationship("VehicleRegister", back_populates="pi_items")
+    bv = relationship("BV", back_populates="pi_items")

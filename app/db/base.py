@@ -8,3 +8,4 @@ from app.models.transaction import Transaction
 from app.models.vehicle_register import VehicleRegister
 from app.models.si import SI
 from app.models.bl import BL
+from app.models.bv import BV
