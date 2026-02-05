@@ -27,3 +27,7 @@ class BVCreate(BaseModel):
     lc_id: int
     chassis: str
     version_bv: int
+
+
+class BVCheck(BaseModel):
+    chassis: str

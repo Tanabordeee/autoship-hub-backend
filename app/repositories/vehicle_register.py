@@ -35,3 +35,10 @@ class VehicleRegisterRepo:
 
     def get_by_id(db: Session, id: int):
         return db.query(VehicleRegister).filter(VehicleRegister.id == id).first()
+
+    def get_by_chassis(db: Session, chassis: str):
+        return (
+            db.query(VehicleRegister)
+            .filter(VehicleRegister.chassis_no == chassis)
+            .first()
+        )

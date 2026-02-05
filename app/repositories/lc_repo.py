@@ -87,3 +87,7 @@ class LCRepo:
 
     def get_by_id(db: Session, id: int):
         return db.query(LC).filter(LC.id == id).first()
+
+    def get_all_lc_no(db: Session):
+        results = db.query(LC.lc_no).distinct().all()
+        return [r[0] for r in results]

@@ -14,6 +14,8 @@ from app.schemas.transaction import TransactionUpdate
 from app.repositories.bv import BVRepository
 from app.schemas.bv import BVCreate
 from app.repositories.proforma_invoice_repo import ProformaInvoiceRepo
+from app.repositories.vehicle_register import VehicleRegisterRepo
+from app.repositories.lc_repo import LCRepo
 import logging
 
 logger = logging.getLogger(__name__)
@@ -252,3 +254,22 @@ def reject_bv(db: Session, transaction_id: int):
     except Exception as e:
         print(e)
     return True
+
+
+def get_check_bv(db: Session, chassis: str):
+    vr = VehicleRegisterRepo.get_by_chassis(db, chassis)
+    logger.info(f"Vehicle Register found for {vr}")
+    logger.info(f"{chassis}")
+    lc_no = LCRepo.get_all_lc_no(db)
+    return {
+        "chassis": vr.chassis_no if vr else None,
+        "make": vr.vehicle_make if vr else None,
+        "model": vr.model if vr else None,
+        "seat": vr.seat if vr else None,
+        "colour": vr.colour if vr else None,
+        "fuel_type": vr.fuel_type if vr else None,
+        "engine_no": vr.engine_no if vr else None,
+        "model_year": vr.model_year if vr else None,
+        "date_of_registration": vr.date_of_registration if vr else None,
+        "lc_no": lc_no,
+    }
