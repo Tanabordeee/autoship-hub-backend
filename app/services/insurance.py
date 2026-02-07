@@ -3,13 +3,22 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
 import ollama
+from fastapi import UploadFile
+from app.repositories.transaction_repo import TransactionRepo
+from app.schemas.transaction import TransactionUpdate
+from app.schemas.insurance import InsuranceCheck
+from app.repositories.lc_repo import LCRepo
+from app.repositories.booking import BookingRepo
+from app.repositories.proforma_invoice_repo import ProformaInvoiceRepo
+from app.repositories.vehicle_register import VehicleRegisterRepo
+from app.repositories.bl import BLRepository
 
 
 class InsuranceHeader(BaseModel):
     name: Optional[str] = None
     certificate_no: Optional[str] = None
     name_of_insured: Optional[str] = None
-    vessle: Optional[str] = None
+    vessel: Optional[str] = None
     sailing_on_or_about: Optional[str] = None
     voyage: Optional[str] = None
     subject_matter_insured: Optional[str] = None
@@ -17,19 +26,20 @@ class InsuranceHeader(BaseModel):
 
 class InsuranceDetails(BaseModel):
     additional_conditional: Optional[str] = None
-    special_conditional_and_warranties: Optional[str] = None
+    special_condition_and_warranties: Optional[str] = None
     invoice_no: Optional[str] = None
     chassis_no: Optional[str] = None
     engine: Optional[str] = None
     the_letter_of_credit_number: Optional[str] = None
     date_of_issue: Optional[str] = None
     bank: Optional[str] = None
-    Date: Optional[str] = None
+    commercial_invoice_no: Optional[str] = None
+    date: Optional[str] = None
 
 
 def call_gemma_Header(PROMPT):
     response = ollama.chat(
-        model="gemma3:27b-it-qat",
+        model="qwen2.5:7b-instruct",
         messages=[
             {
                 "role": "system",
@@ -46,7 +56,7 @@ def call_gemma_Header(PROMPT):
 
 def call_gemma_Details(PROMPT):
     response = ollama.chat(
-        model="gemma3:27b-it-qat",
+        model="qwen2.5:7b-instruct",
         messages=[
             {
                 "role": "system",
@@ -71,7 +81,7 @@ def merge_dicts(a: dict, b: dict) -> dict:
     return result
 
 
-def extract_insurance(db: Session, file):
+def extract_insurance(db: Session, file: UploadFile, transaction_id: int):
     raw_text = extract_text_from_file(file)
     PROMPT1 = f"""
     USER INPUT
@@ -86,7 +96,7 @@ def extract_insurance(db: Session, file):
     name : บริษัทประกัน เช่น MSIG Insurance (Thailand) Public Company Limited,
     certificate_no : มักขึ้นต้นด้วย Certificate\s+No แล้วตามหลังด้วยเลข,
     name_of_insured : มักขึ้นต้นด้วย NAME\s+OF\s+INSURED,
-    vessle : มักขึ้นต้นด้วย VESSEL\/CONVEYANCE,
+    vessel : มักขึ้นต้นด้วย VESSEL\/CONVEYANCE,
     sailing_on_or_about : มักขึ้นต้นด้วย SAILING\s+ON\s+OR\s+ABOUT แล้วตามด้วย วันเดือนปี,
     voyage : มักขึ้นต้นด้วย VOYAGE\s*:\s*(.+),
     subject_matter_insured : Extract verbatim text starting from the first line under
@@ -108,18 +118,41 @@ def extract_insurance(db: Session, file):
     - Copy text verbatim between the heading and next heading
     {{
     additional_conditional : มักมีคำขึ้นต้นด้วย ADDITIONAL CONDITIONALS
-    special_conditional_and_warranties: มักมีคำขึ้นต้นด้วย SPECIAL\s+CONDITIONS\s+AND\s+WARRANTIES,
+    special_condition_and_warranties: มักมีคำขึ้นต้นด้วย SPECIAL\s+CONDITIONS\s+AND\s+WARRANTIES,
     invoice_no : มักจะขึ้นต้นด้วย PROFORMA\s+INVOICE\s+NO\.?\s*[:\-]?\s*([A-Z0-9\-]+)
     chassis_no : มักขึ้นต้นด้วย CHASSIS\s+NO\.?\s*[:\-]?\s*([A-Z0-9]+),
     engine : มักขึ้นต้นด้วย ENGINE\s*[:\-]?\s*([A-Z0-9]+) ,
     the_letter_of_credit_number : มักขึ้นต้นด้วย LETTER\s+OF\s+CREDIT\s+NUMBER\.?\s*[:\-]?\s*([0-9]+),
     date_of_issue : มักขึ้นต้นด้วย DATE\s+OF\s+ISSUE\s*[:\-]?\s*([0-9]+),
     bank : มักขึ้นต้นด้วย (PEOPLE'S\s+BANK[\s\S]*?SRI\s+LANKA\.?)
-    Date : มักขึ้นต้นด้วย Date,
+    commercial_invoice_no : มักขึ้นต้นด้วย COMMERCIAL\s+INVOICE\s+NO\.?\s*[:\-]?\s*([A-Z0-9]+),
+    date : มักขึ้นต้นด้วย Date,
     }}
     """
     result_1 = call_gemma_Header(PROMPT1)
     result_2 = call_gemma_Details(PROMPT2)
 
     final_result = merge_dicts(result_1, result_2)
+    TransactionRepo.update(
+        db,
+        int(transaction_id),
+        TransactionUpdate(status="pending", current_process="insurance"),
+    )
     return final_result
+
+
+def get_check_insurance(db: Session, payload: InsuranceCheck):
+    lc = LCRepo.get_by_id(db, payload.lc_id)
+    pi = ProformaInvoiceRepo.get_by_id(db, payload.pi_id)
+    vr = VehicleRegisterRepo.get_by_id(db, payload.vr_id)
+    bl = BLRepository.get_by_id(db, payload.bl_id)
+    booking = BookingRepo.get_by_id(db, payload.booking_id)
+    if not lc or not pi or not vr or not booking or not bl:
+        return None
+    return {
+        "lc": lc,
+        "pi": pi,
+        "vr": vr,
+        "booking": booking,
+        "bl": bl,
+    }

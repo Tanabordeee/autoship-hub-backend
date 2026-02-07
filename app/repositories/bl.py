@@ -42,3 +42,7 @@ class BLRepository:
             .order_by(BL.version_bl.desc())
             .first()
         )
+
+    @staticmethod
+    def get_by_id(db: Session, bl_id: int) -> BL:
+        return db.query(BL).filter(BL.id == bl_id).first()
