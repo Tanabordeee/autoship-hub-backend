@@ -33,5 +33,10 @@ class BLCreate(BaseModel):
     version_bl: int
 
 
-class TransactionStatusUpdate(BaseModel):
+class TransactionStatusUpdateConfirm(BaseModel):
+    transaction_id: int
+    bl_id: int
+
+
+class TransactionStatusUpdateReject(BaseModel):
     transaction_id: int

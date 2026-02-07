@@ -20,3 +20,4 @@ class SICreate(BaseModel):
 
 class ConfirmSi(BaseModel):
     transaction_id: int
+    si_id: int

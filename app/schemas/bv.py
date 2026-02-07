@@ -27,6 +27,7 @@ class BVCreate(BaseModel):
     lc_id: int
     chassis: str
     version_bv: int
+    transaction_id: int
 
 
 class BVCheck(BaseModel):

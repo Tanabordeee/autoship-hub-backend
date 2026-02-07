@@ -36,13 +36,14 @@ def create_lc(db: Session, payload: LCCreate, user_id: int, pi_id: list[int]):
         # First version
         payload.versions = 1
     transaction_ids = ProformaInvoiceRepo.get_transaction_by_pi_id(db, pi_id)
+    lc = LCRepo.create(db, payload, user_id, pi_id)
     for transaction_id in transaction_ids:
         TransactionRepo.update(
             db,
             transaction_id,
-            TransactionUpdate(status="completed", current_process="lc"),
+            TransactionUpdate(status="completed", current_process="lc", lc_id=lc.id),
         )
-    return LCRepo.create(db, payload, user_id, pi_id)
+    return lc
 
 
 def extract_lc(db: Session, file: UploadFile, user_id: int, transaction_id: int):

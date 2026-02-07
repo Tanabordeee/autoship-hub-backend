@@ -6,7 +6,11 @@ from app.models.user import User
 from app.services.bl import extract_bl, get_check_data
 from app.schemas.bl import BLCheck
 from app.services.bl import create_bl, confirm_bl, reject_bl
-from app.schemas.bl import BLCreate, TransactionStatusUpdate
+from app.schemas.bl import (
+    BLCreate,
+    TransactionStatusUpdateConfirm,
+    TransactionStatusUpdateReject,
+)
 
 router = APIRouter()
 
@@ -42,16 +46,16 @@ def create_bl_endpoint(
 
 @router.post("/confirm-bl")
 def confirm_bl_endpoint(
-    payload: TransactionStatusUpdate = Body(...),
+    payload: TransactionStatusUpdateConfirm = Body(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return confirm_bl(db, payload.transaction_id)
+    return confirm_bl(db, payload.transaction_id, payload.bl_id)
 
 
 @router.post("/reject-bl")
 def reject_bl_endpoint(
-    payload: TransactionStatusUpdate = Body(...),
+    payload: TransactionStatusUpdateReject = Body(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):

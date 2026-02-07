@@ -15,3 +15,4 @@ class SI(Base):
     seal_no = Column(Text)
     user_id = Column(Integer, ForeignKey("users.id"))
     user = relationship("User", back_populates="si")
+    transactions = relationship("Transaction", back_populates="si")

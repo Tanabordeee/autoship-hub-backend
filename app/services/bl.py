@@ -100,12 +100,12 @@ def extract_bl(db: Session, file, transaction_id: str):
     return data
 
 
-def confirm_bl(db: Session, transaction_id: int):
+def confirm_bl(db: Session, transaction_id: int, bl_id: int):
     try:
         TransactionRepo.update(
             db,
             int(transaction_id),
-            TransactionUpdate(status="confirm", current_process="bl"),
+            TransactionUpdate(status="confirm", current_process="bl", bl_id=bl_id),
         )
     except Exception as e:
         print(e)

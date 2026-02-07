@@ -1,15 +1,17 @@
 from pydantic import BaseModel
 from typing import List, Optional
 
+
 class PiItemCreate(BaseModel):
-    description:str
-    item_no:int
+    description: str
+    item_no: int
     unit: int
     unit_price: float
     amount_in_usd: float
     parent_items: Optional[int] = None
-    item_type : str
-    
+    item_type: str
+
+
 class CreateProformaInvoice(BaseModel):
     pi_id: str
     date: str
@@ -30,10 +32,12 @@ class CreateProformaInvoice(BaseModel):
 
     total_price: float
     pi_approver: str
-    items: List[PiItemCreate]  
+    items: List[PiItemCreate]
+
 
 class ApproveProformaInvoice(BaseModel):
     approver: str
 
+
 class ChassisRequest(BaseModel):
-    pi_ids: List[int]
+    pi_ids: int

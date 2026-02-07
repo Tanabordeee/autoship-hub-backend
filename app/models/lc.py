@@ -55,3 +55,4 @@ class LC(Base):
     bookings = relationship("Booking", back_populates="lc")
     vehicle_registers = relationship("VehicleRegister", back_populates="lc")
     bvs = relationship("BV", back_populates="lc")
+    transactions = relationship("Transaction", back_populates="lc")

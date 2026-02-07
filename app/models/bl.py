@@ -31,3 +31,4 @@ class BL(Base):
 
     # Relationships
     user = relationship("User", back_populates="bls")
+    transactions = relationship("Transaction", back_populates="bl")

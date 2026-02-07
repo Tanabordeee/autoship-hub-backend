@@ -85,10 +85,10 @@ def create_si(db: Session, payload: SICreate):
     return {"output_path": output_path, "si_id": si.id}
 
 
-def confirm_si(db: Session, transaction_id: int):
+def confirm_si(db: Session, transaction_id: int, si_id: int):
     TransactionRepo.update(
         db,
         transaction_id,
-        TransactionUpdate(status="completed", current_process="si"),
+        TransactionUpdate(status="completed", current_process="si", si_id=si_id),
     )
     return True
