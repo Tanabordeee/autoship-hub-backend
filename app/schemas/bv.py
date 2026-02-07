@@ -32,3 +32,7 @@ class BVCreate(BaseModel):
 
 class BVCheck(BaseModel):
     chassis: str
+
+
+class ConfirmAndRejectBV(BaseModel):
+    transaction_id: int

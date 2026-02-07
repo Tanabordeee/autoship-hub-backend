@@ -4,7 +4,7 @@ from app.api.deps import get_db
 from app.services.bv import extract_bv
 from app.api.deps import get_current_user
 from app.models.user import User
-from app.schemas.bv import BVCreate, BVCheck
+from app.schemas.bv import BVCreate, BVCheck, ConfirmAndRejectBV
 from app.services.bv import create_bv, confirm_bv, reject_bv, get_check_bv
 
 router = APIRouter()
@@ -31,20 +31,20 @@ def create_bv_endpoint(
 
 @router.post("/confirm-bv")
 def confirm_bv_endpoint(
-    transaction_id: int = Form(...),
+    payload: ConfirmAndRejectBV,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return confirm_bv(db, transaction_id)
+    return confirm_bv(db, payload.transaction_id)
 
 
 @router.post("/reject-bv")
 def reject_bv_endpoint(
-    transaction_id: int = Form(...),
+    payload: ConfirmAndRejectBV,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return reject_bv(db, transaction_id)
+    return reject_bv(db, payload.transaction_id)
 
 
 @router.post("/check-bv")
