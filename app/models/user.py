@@ -19,3 +19,4 @@ class User(Base):
     si = relationship("SI", back_populates="user")
     bls = relationship("BL", back_populates="user")
     bvs = relationship("BV", back_populates="user")
+    insurances = relationship("Insurance", back_populates="user")
