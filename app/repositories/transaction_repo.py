@@ -26,6 +26,8 @@ class TransactionRepo:
             transaction.si_id = payload.si_id
         if payload.bl_id:
             transaction.bl_id = payload.bl_id
+        if payload.insurance_id:
+            transaction.insurance_id = payload.insurance_id
         db.commit()
         db.refresh(transaction)
         return transaction

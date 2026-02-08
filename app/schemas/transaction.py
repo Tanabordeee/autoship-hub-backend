@@ -13,3 +13,4 @@ class TransactionUpdate(BaseModel):
     lc_id: Optional[int] = None
     si_id: Optional[int] = None
     bl_id: Optional[int] = None
+    insurance_id: Optional[int] = None

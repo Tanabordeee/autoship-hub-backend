@@ -12,6 +12,10 @@ from app.repositories.booking import BookingRepo
 from app.repositories.proforma_invoice_repo import ProformaInvoiceRepo
 from app.repositories.vehicle_register import VehicleRegisterRepo
 from app.repositories.bl import BLRepository
+from app.schemas.insurance import InsuranceCreate
+from app.repositories.insurance import InsuranceRepo
+from app.schemas.insurance import InsuranceConfirm
+import logging
 
 
 class InsuranceHeader(BaseModel):
@@ -156,3 +160,65 @@ def get_check_insurance(db: Session, payload: InsuranceCheck):
         "booking": booking,
         "bl": bl,
     }
+
+
+def create_insurance(db: Session, payload: InsuranceCreate, user_id: int):
+    payload.name = payload.name.strip()
+    existing_insurance = InsuranceRepo.get_latest_version_by_certificate_no(
+        db, payload.certificate_no
+    )
+    if existing_insurance:
+        # Increment version
+        new_version = (existing_insurance.version_insurance or 0) + 1
+
+        # Merge None fields from new payload with existing LC data
+        payload_dict = payload.model_dump()
+
+        for field, value in payload_dict.items():
+            if value is None and hasattr(existing_insurance, field):
+                # If new value is None, use the old value
+                old_value = getattr(existing_insurance, field)
+                setattr(payload, field, old_value)
+
+        # Set the new version number
+        payload.version_insurance = new_version
+    else:
+        # First version
+        payload.version_insurance = 1
+    return InsuranceRepo.create(db, payload, user_id)
+
+
+def confirm_insurance(db: Session, payload: InsuranceConfirm):
+    logging.info(payload.transaction_id)
+    try:
+        TransactionRepo.update(
+            db,
+            int(payload.transaction_id),
+            TransactionUpdate(
+                status="confirm",
+                current_process="insurance",
+                insurance_id=payload.insurance_id,
+            ),
+        )
+        return True
+    except Exception as e:
+        print(e)
+        return False
+
+
+def reject_insurance(db: Session, payload: InsuranceConfirm):
+    logging.info(payload.transaction_id)
+    try:
+        TransactionRepo.update(
+            db,
+            int(payload.transaction_id),
+            TransactionUpdate(
+                status="reject",
+                current_process="insurance",
+                insurance_id=payload.insurance_id,
+            ),
+        )
+        return True
+    except Exception as e:
+        print(e)
+        return False
