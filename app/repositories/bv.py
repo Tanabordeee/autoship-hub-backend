@@ -49,3 +49,7 @@ class BVRepository:
             .order_by(BV.version_bv.desc())
             .first()
         )
+
+    @staticmethod
+    def get_by_id(db: Session, id: int):
+        return db.query(BV).filter(BV.id == id).first()
