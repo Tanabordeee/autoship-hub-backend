@@ -112,16 +112,17 @@ def confirm_bl(db: Session, transaction_id: int, bl_id: int):
     return True
 
 
-def reject_bl(db: Session, transaction_id: int):
+def reject_bl(db: Session, transaction_id: int, bl_id: int):
     try:
         TransactionRepo.update(
             db,
             int(transaction_id),
-            TransactionUpdate(status="reject", current_process="bl"),
+            TransactionUpdate(status="reject", current_process="bl", bl_id=bl_id),
         )
+        return True
     except Exception as e:
         print(e)
-    return True
+        return False
 
 
 def get_check_data(db: Session, payload):
