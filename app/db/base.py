@@ -10,3 +10,4 @@ from app.models.si import SI
 from app.models.bl import BL
 from app.models.bv import BV
 from app.models.insurance import Insurance
+from app.models.commercial_invoice import CommercialInvoice

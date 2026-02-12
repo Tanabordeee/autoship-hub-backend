@@ -8,7 +8,7 @@ from app.services.commercial_invoice import generate_commercial_invoice
 from app.services.commercial_invoice import confirm_commercial_invoice
 from app.schemas.commercial_invoice import (
     CommercialInvoice,
-    ConfirmCommercialInvoicePayload,
+    CreateCommercialInvoicePayload,
 )
 
 router = APIRouter()
@@ -34,11 +34,11 @@ def generate_commercial_invoice_endpoint(
 
 @router.post("/confirm_commercial_invoice")
 def confirm_commercial_invoice_endpoint(
-    payload: ConfirmCommercialInvoicePayload,
+    payload: CreateCommercialInvoicePayload,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    result = confirm_commercial_invoice(db, payload)
+    result = confirm_commercial_invoice(db, payload, current_user.id)
     if result:
         return {"success": True}
     return {"error": "Failed to confirm commercial invoice"}

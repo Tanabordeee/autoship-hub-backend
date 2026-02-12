@@ -20,3 +20,4 @@ class User(Base):
     bls = relationship("BL", back_populates="user")
     bvs = relationship("BV", back_populates="user")
     insurances = relationship("Insurance", back_populates="user")
+    commercial_invoice = relationship("CommercialInvoice", back_populates="user")

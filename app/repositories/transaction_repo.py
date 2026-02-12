@@ -28,6 +28,8 @@ class TransactionRepo:
             transaction.bl_id = payload.bl_id
         if payload.insurance_id:
             transaction.insurance_id = payload.insurance_id
+        if payload.commercial_invoice_id:
+            transaction.commercial_invoice_id = payload.commercial_invoice_id
         db.commit()
         db.refresh(transaction)
         return transaction

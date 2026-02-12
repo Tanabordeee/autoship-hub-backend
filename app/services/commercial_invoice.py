@@ -14,7 +14,10 @@ from sqlalchemy.orm import Session
 import json
 from app.repositories.transaction_repo import TransactionRepo
 from app.schemas.transaction import TransactionUpdate
-from app.schemas.commercial_invoice import ConfirmCommercialInvoicePayload
+from app.schemas.commercial_invoice import (
+    CreateCommercialInvoicePayload,
+)
+from app.repositories.commercial_invoice import CommercialInvoiceRepo
 
 
 def call_gemma_extract(prompt: str, system_prompt: str):
@@ -216,10 +219,17 @@ Rules:
     return {"output_path": output_path}
 
 
-def confirm_commercial_invoice(db: Session, payload: ConfirmCommercialInvoicePayload):
+def confirm_commercial_invoice(
+    db: Session, payload: CreateCommercialInvoicePayload, user_id: int
+):
+    commcercial_invoice = CommercialInvoiceRepo.create(db, payload, user_id)
     TransactionRepo.update(
         db,
         payload.transaction_id,
-        TransactionUpdate(status="completed", current_process="commercial_invoice"),
+        TransactionUpdate(
+            status="completed",
+            current_process="commercial_invoice",
+            commercial_invoice_id=commcercial_invoice.id,
+        ),
     )
-    return True
+    return commcercial_invoice

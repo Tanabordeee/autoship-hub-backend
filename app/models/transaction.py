@@ -12,11 +12,14 @@ class Transaction(Base):
     si_id = Column(Integer, ForeignKey("si.id"))
     bl_id = Column(Integer, ForeignKey("bl.id"))
     insurance_id = Column(Integer, ForeignKey("insurance.id"))
-
+    commercial_invoice_id = Column(Integer, ForeignKey("commercial_invoice.id"))
     # Singular Relationships (Transaction holds the FK)
     lc = relationship("LC", back_populates="transactions")
     si = relationship("SI", back_populates="transactions")
     bl = relationship("BL", back_populates="transactions")
+    commercial_invoice = relationship(
+        "CommercialInvoice", back_populates="transactions"
+    )
     insurance = relationship("Insurance", back_populates="transactions")
 
     proforma_invoices = relationship(

@@ -14,3 +14,4 @@ class TransactionUpdate(BaseModel):
     si_id: Optional[int] = None
     bl_id: Optional[int] = None
     insurance_id: Optional[int] = None
+    commercial_invoice_id: Optional[int] = None
