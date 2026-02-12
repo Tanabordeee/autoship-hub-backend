@@ -196,6 +196,7 @@ def extract_bv(db: Session, file: UploadFile, transaction_id: int):
         )
     if bv_mismatch_pages:
         data["bv_mismatch_pages"] = bv_mismatch_pages
+
     TransactionRepo.update(
         db,
         int(transaction_id),

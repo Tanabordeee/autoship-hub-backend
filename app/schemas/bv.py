@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 
 
-class BVCreate(BaseModel):
+class BVBase(BaseModel):
     type_of_vehicle: str
     make: str
     model: str
@@ -25,9 +25,15 @@ class BVCreate(BaseModel):
     lc_no: str
     user_id: int
     lc_id: int
-    chassis: str
     version_bv: int
     transaction_id: int
+
+    class Config:
+        from_attributes = True
+
+
+class BVCreate(BVBase):
+    chassis: str
 
 
 class BVCheck(BaseModel):
@@ -36,3 +42,7 @@ class BVCheck(BaseModel):
 
 class ConfirmAndRejectBV(BaseModel):
     transaction_id: int
+
+
+class BVResponse(BVBase):
+    id: int
