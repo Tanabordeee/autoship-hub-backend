@@ -12,6 +12,9 @@ import re
 import ollama
 from sqlalchemy.orm import Session
 import json
+from app.repositories.transaction_repo import TransactionRepo
+from app.schemas.transaction import TransactionUpdate
+from app.schemas.commercial_invoice import ConfirmCommercialInvoicePayload
 
 
 def call_gemma_extract(prompt: str, system_prompt: str):
@@ -205,5 +208,18 @@ Rules:
     HTML(string=html_out, base_url=template_dir).write_pdf(
         output_path, stylesheets=stylesheets
     )
-
+    TransactionRepo.update(
+        db,
+        payload.transaction_id,
+        TransactionUpdate(status="pending", current_process="commercial_invoice"),
+    )
     return {"output_path": output_path}
+
+
+def confirm_commercial_invoice(db: Session, payload: ConfirmCommercialInvoicePayload):
+    TransactionRepo.update(
+        db,
+        payload.transaction_id,
+        TransactionUpdate(status="completed", current_process="commercial_invoice"),
+    )
+    return True

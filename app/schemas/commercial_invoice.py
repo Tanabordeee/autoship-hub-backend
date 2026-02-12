@@ -10,3 +10,7 @@ class CommercialInvoice(BaseModel):
     transaction_id: int
     director: str
     bank: str
+
+
+class ConfirmCommercialInvoicePayload(BaseModel):
+    transaction_id: int
