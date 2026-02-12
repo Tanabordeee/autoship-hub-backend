@@ -14,3 +14,6 @@ class CommercialInvoiceRepo:
         db.commit()
         db.refresh(commercial_invoice)
         return commercial_invoice
+
+    def get_by_id(db: Session, id: int):
+        return db.query(CommercialInvoice).filter(CommercialInvoice.id == id).first()

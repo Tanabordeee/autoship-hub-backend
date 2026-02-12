@@ -8,6 +8,7 @@ from app.services.commercial_invoice import generate_commercial_invoice
 from app.services.commercial_invoice import confirm_commercial_invoice
 from app.schemas.commercial_invoice import (
     CommercialInvoice,
+    CommercialInvoiceResponse,
     CreateCommercialInvoicePayload,
 )
 
@@ -32,7 +33,7 @@ def generate_commercial_invoice_endpoint(
     return {"error": "Failed to generate commercial invoice"}
 
 
-@router.post("/confirm_commercial_invoice")
+@router.post("/confirm_commercial_invoice", response_model=CommercialInvoiceResponse)
 def confirm_commercial_invoice_endpoint(
     payload: CreateCommercialInvoicePayload,
     db: Session = Depends(get_db),
@@ -40,5 +41,5 @@ def confirm_commercial_invoice_endpoint(
 ):
     result = confirm_commercial_invoice(db, payload, current_user.id)
     if result:
-        return {"success": True}
+        return result
     return {"error": "Failed to confirm commercial invoice"}

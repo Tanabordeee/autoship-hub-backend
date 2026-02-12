@@ -109,7 +109,9 @@ Rules:
 - Keep the original wording exactly
             """,
             )
+            print(f"DEBUG: conditions = {conditions}")
             E_46A = parse_json_result(E_46A_raw)
+            print(f"DEBUG: E_46A = {E_46A}")
             A_46A = call_gemma_extract(
                 conditions,
                 """
@@ -119,19 +121,28 @@ Extract ONLY the text labeled "A)".
 Rules:
 - Extract the full sentence(s) belonging to A)
 - Stop extraction before item B)
+- Each extracted sentence must end with a newline character (\n)
 - Do NOT summarize or paraphrase
 - Preserve original wording exactly
 - Return the result as plain text only (no JSON, no explanation)
                 """,
             )
-            beneficiary_to_certify = re.search(
-                r"BENEFICIARY TO CERTIFY ON THE INVOICES?\s+(.*?\.)",
+            print(f"DEBUG: A_46A = {A_46A}")
+            beneficiary_to_certify = call_gemma_extract(
                 conditions,
-                re.IGNORECASE | re.DOTALL,
+                """
+                You are a text extraction system.
+Task:
+Extract the text stating what the BENEFICIARY is required to CERTIFY on the invoices.
+Rules:
+- Look for phrases like "BENEFICIARY TO CERTIFY..." or "BENEFICIARY MUST CERTIFY..."
+- Extract the full certification statement until the first full stop (.)
+- Do NOT summarize or paraphrase
+- Preserve original wording exactly
+- Return the result as plain text only (no JSON, no explanation)
+                """,
             )
-            beneficiary_to_certify = (
-                beneficiary_to_certify.group(1) if beneficiary_to_certify else ""
-            )
+            print(f"DEBUG: beneficiary_to_certify = {beneficiary_to_certify}")
 
     desc_items = (lc.description_of_good_45a_45b or {}).get("items", [])
     desc_text = desc_items[0].get("description", "") if desc_items else ""

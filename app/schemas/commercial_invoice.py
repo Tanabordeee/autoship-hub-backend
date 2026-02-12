@@ -16,3 +16,13 @@ class CreateCommercialInvoicePayload(BaseModel):
     transaction_id: int
     director: str
     bank: str
+
+
+class CommercialInvoiceResponse(BaseModel):
+    id: int
+    bank: str
+    director: str
+    user_id: int
+
+    class Config:
+        from_attributes = True
