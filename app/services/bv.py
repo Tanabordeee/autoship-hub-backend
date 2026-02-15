@@ -17,6 +17,7 @@ from app.repositories.proforma_invoice_repo import ProformaInvoiceRepo
 from app.repositories.vehicle_register import VehicleRegisterRepo
 from app.repositories.lc_repo import LCRepo
 import logging
+from app.services.audit_log_service import audit_log_service
 
 logger = logging.getLogger(__name__)
 # =========================
@@ -203,6 +204,7 @@ def extract_bv(db: Session, file: UploadFile, transaction_id: int, user_id: int)
         TransactionUpdate(status="pending", current_process="bv"),
         user_id=user_id,
     )
+    audit_log_service.log_action(db, "extract", "bv", user_id, transaction_id)
     return data
 
 
@@ -248,9 +250,11 @@ def confirm_bv(db: Session, transaction_id: int, user_id: int):
             TransactionUpdate(status="confirm", current_process="bv"),
             user_id=user_id,
         )
+        audit_log_service.log_action(db, "confirm", "bv", user_id, transaction_id)
+        return True
     except Exception as e:
         print(e)
-    return True
+    return False
 
 
 def reject_bv(db: Session, transaction_id: int, user_id: int):
@@ -261,9 +265,11 @@ def reject_bv(db: Session, transaction_id: int, user_id: int):
             TransactionUpdate(status="reject", current_process="bv"),
             user_id=user_id,
         )
+        audit_log_service.log_action(db, "reject", "bv", user_id, transaction_id)
+        return True
     except Exception as e:
         print(e)
-    return True
+    return False
 
 
 def get_check_bv(db: Session, chassis: str):

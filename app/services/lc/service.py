@@ -12,6 +12,7 @@ from app.core.config import settings
 from app.services.ocr_service import ocr_image
 from .parser import clean_text_common, clean_45a_text, extract_document_require_46A
 from app.repositories.proforma_invoice_repo import ProformaInvoiceRepo
+from app.services.audit_log_service import audit_log_service
 
 
 def create_lc(db: Session, payload: LCCreate, user_id: int, pi_id: list[int]):
@@ -44,6 +45,7 @@ def create_lc(db: Session, payload: LCCreate, user_id: int, pi_id: list[int]):
             TransactionUpdate(status="completed", current_process="lc", lc_id=lc.id),
             user_id=user_id,
         )
+        audit_log_service.log_action(db, "create", "lc", user_id, transaction_id)
     return lc
 
 
@@ -304,4 +306,5 @@ def extract_lc(db: Session, file: UploadFile, user_id: int, transaction_id: int)
         TransactionUpdate(status="pending", current_process="lc"),
         user_id=user_id,
     )
+    audit_log_service.log_action(db, "extract", "lc", user_id, transaction_id)
     return response_data

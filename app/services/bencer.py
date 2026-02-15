@@ -11,6 +11,7 @@ from app.repositories.transaction_repo import TransactionRepo
 from app.schemas.transaction import TransactionUpdate
 from app.schemas.bencer import CreateBencer
 from app.repositories.bencer import BencerRepo
+from app.services.audit_log_service import audit_log_service
 
 
 def generate_bencer(db: Session, payload: BencerGenerate, user_id: int):
@@ -59,6 +60,9 @@ def generate_bencer(db: Session, payload: BencerGenerate, user_id: int):
         TransactionUpdate(status="pending", current_process="bencer"),
         user_id=user_id,
     )
+    audit_log_service.log_action(
+        db, "generate", "bencer", user_id, payload.transaction_id
+    )
     return {"output_path": output_path}
 
 
@@ -71,5 +75,8 @@ def confirm_bencer(db: Session, payload: CreateBencer, user_id: int):
             status="completed", current_process="bencer", bencer_id=bencer.id
         ),
         user_id=user_id,
+    )
+    audit_log_service.log_action(
+        db, "confirm", "bencer", user_id, payload.transaction_id
     )
     return bencer

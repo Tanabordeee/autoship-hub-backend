@@ -15,6 +15,7 @@ from datetime import datetime
 from app.repositories.bl import BLRepository
 from app.schemas.bl import BLCreate
 from bs4 import BeautifulSoup
+from app.services.audit_log_service import audit_log_service
 
 
 def extract_block(text, label):
@@ -98,6 +99,7 @@ def extract_bl(db: Session, file, transaction_id: str, user_id: int):
         user_id=user_id,
     )
     data["text"] = text
+    audit_log_service.log_action(db, "extract", "bl", user_id, transaction_id)
     return data
 
 
@@ -109,9 +111,11 @@ def confirm_bl(db: Session, transaction_id: int, bl_id: int, user_id: int):
             TransactionUpdate(status="confirm", current_process="bl", bl_id=bl_id),
             user_id=user_id,
         )
+        audit_log_service.log_action(db, "confirm", "bl", user_id, transaction_id)
+        return True
     except Exception as e:
         print(e)
-    return True
+    return False
 
 
 def reject_bl(db: Session, transaction_id: int, bl_id: int, user_id: int):
@@ -122,6 +126,7 @@ def reject_bl(db: Session, transaction_id: int, bl_id: int, user_id: int):
             TransactionUpdate(status="reject", current_process="bl", bl_id=bl_id),
             user_id=user_id,
         )
+        audit_log_service.log_action(db, "reject", "bl", user_id, transaction_id)
         return True
     except Exception as e:
         print(e)

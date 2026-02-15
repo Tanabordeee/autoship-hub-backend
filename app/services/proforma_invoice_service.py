@@ -3,7 +3,7 @@ from app.repositories.proforma_invoice_repo import ProformaInvoiceRepo
 from app.schemas.proforma_invoice import CreateProformaInvoice
 import os
 import jinja2
-from typing import List
+from app.services.audit_log_service import audit_log_service
 from weasyprint import HTML
 
 
@@ -31,16 +31,34 @@ def generate_pdf(pi_id: str, db: Session, output_path: str):
     return output_path
 
 
-def approve_proforma_invoice(db: Session, pi_id: str, approver: str):
-    return ProformaInvoiceRepo.update_pi_status(db, pi_id, "approved", approver)
+def approve_proforma_invoice(db: Session, pi_id: str, approver: str, user_id: int):
+    res = ProformaInvoiceRepo.update_pi_status(db, pi_id, "approved", approver)
+
+    # Audit Log
+    pi = ProformaInvoiceRepo.get_by_pi_id(db, pi_id)
+    if pi and pi.transaction:
+        audit_log_service.log_action(
+            db, "approve", "proforma_invoice", user_id, pi.transaction.id
+        )
+
+    return res
 
 
 def get_all_proforma_invoice(db: Session):
     return ProformaInvoiceRepo.get_all(db)
 
 
-def reject_proforma_invoice(db: Session, pi_id: str):
-    return ProformaInvoiceRepo.update_pi_status(db, pi_id, "rejected")
+def reject_proforma_invoice(db: Session, pi_id: str, user_id: int):
+    res = ProformaInvoiceRepo.update_pi_status(db, pi_id, "rejected")
+
+    # Audit Log
+    pi = ProformaInvoiceRepo.get_by_pi_id(db, pi_id)
+    if pi and pi.transaction:
+        audit_log_service.log_action(
+            db, "reject", "proforma_invoice", user_id, pi.transaction.id
+        )
+
+    return res
 
 
 def get_proforma_invoice_by_pi_id(db: Session, pi_id: str):

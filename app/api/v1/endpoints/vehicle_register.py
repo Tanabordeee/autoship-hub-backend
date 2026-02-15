@@ -24,7 +24,7 @@ def extract_vehicle_register_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return extract_vehicle_register(db, file, transaction_id)
+    return extract_vehicle_register(db, file, transaction_id, current_user.id)
 
 
 @router.post("/vehicle-register", response_model=VehicleRegisterCreateResponse)
@@ -39,10 +39,11 @@ def create_vehicle_register_endpoint(
 @router.get("/vehicle-register-excel/{id}")
 def create_vehicle_register_excel_endpoint(
     id: int,
+    transaction_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    file_path = create_vehicle_register_excel(db, id)
+    file_path = create_vehicle_register_excel(db, id, transaction_id, current_user.id)
     return FileResponse(
         file_path,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

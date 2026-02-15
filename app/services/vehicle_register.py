@@ -9,6 +9,7 @@ from app.repositories.proforma_invoice_repo import ProformaInvoiceRepo
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font
 from openpyxl.utils import get_column_letter
+from app.services.audit_log_service import audit_log_service
 
 
 def safe_search(pattern, content):
@@ -18,7 +19,7 @@ def safe_search(pattern, content):
     return None
 
 
-def extract_vehicle_register(db: Session, file, transaction_id: int):
+def extract_vehicle_register(db: Session, file, transaction_id: int, user_id: int):
     text = ""
     file.file.seek(0)
     with pdfplumber.open(file.file) as pdf:
@@ -52,6 +53,10 @@ def extract_vehicle_register(db: Session, file, transaction_id: int):
         db,
         transaction_id,
         TransactionUpdate(status="pending", current_process="vehicle_register"),
+        user_id,
+    )
+    audit_log_service.log_action(
+        db, "extract", "vehicle_register", user_id, transaction_id
     )
     return result
 
@@ -71,11 +76,17 @@ def create_vehicle_register(
             current_process="vehicle_register",
             vehicle_register_id=vehicle_register.id,
         ),
+        user_id,
+    )
+    audit_log_service.log_action(
+        db, "create", "vehicle_register", user_id, transaction_id
     )
     return {"id": vehicle_register.id}
 
 
-def create_vehicle_register_excel(db: Session, id: int):
+def create_vehicle_register_excel(
+    db: Session, id: int, transaction_id: int, user_id: int
+):
     vehicle_register = VehicleRegisterRepo.get_by_id(db, id)
     if not vehicle_register:
         raise ValueError("Vehicle Register not found")
@@ -120,5 +131,7 @@ def create_vehicle_register_excel(db: Session, id: int):
 
     file_path = f"/tmp/vehicle_register_{vehicle_register.id}.xlsx"
     wb.save(file_path)
-
+    audit_log_service.log_action(
+        db, "export", "vehicle_register", user_id, transaction_id
+    )
     return file_path

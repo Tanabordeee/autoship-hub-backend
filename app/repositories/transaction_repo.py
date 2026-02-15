@@ -3,9 +3,11 @@ from app.models.transaction import Transaction
 from app.schemas.transaction import TransactionCreate
 from app.schemas.transaction import TransactionUpdate
 from app.models.user import User
+from app.services.audit_log_service import audit_log_service
 
 
 class TransactionRepo:
+    @staticmethod
     def create(db: Session, payload: TransactionCreate, user_id: int = None):
 
         transaction = Transaction(
@@ -18,8 +20,17 @@ class TransactionRepo:
         db.add(transaction)
         db.commit()
         db.refresh(transaction)
+
+        # Audit Log
+        from app.services.audit_log_service import audit_log_service
+
+        audit_log_service.log_action(
+            db, "create", "transaction", user_id, transaction.id
+        )
+
         return transaction
 
+    @staticmethod
     def update(db: Session, id: int, payload: TransactionUpdate, user_id: int = None):
         transaction = db.query(Transaction).filter(Transaction.id == id).first()
         if not transaction:
@@ -52,6 +63,13 @@ class TransactionRepo:
                 transaction.users.append(user)
         db.commit()
         db.refresh(transaction)
+
+        # Audit Log
+
+        audit_log_service.log_action(
+            db, "update", "transaction", user_id, transaction.id
+        )
+
         return transaction
 
     def get_all(db: Session):

@@ -18,6 +18,7 @@ from app.schemas.commercial_invoice import (
     CreateCommercialInvoicePayload,
 )
 from app.repositories.commercial_invoice import CommercialInvoiceRepo
+from app.services.audit_log_service import audit_log_service
 
 
 def call_gemma_extract(prompt: str, system_prompt: str):
@@ -249,6 +250,9 @@ Rules:
         TransactionUpdate(status="pending", current_process="commercial_invoice"),
         user_id=user_id,
     )
+    audit_log_service.log_action(
+        db, "generate", "commercial_invoice", user_id, payload.transaction_id
+    )
     return {"output_path": output_path}
 
 
@@ -265,5 +269,8 @@ def confirm_commercial_invoice(
             commercial_invoice_id=commcercial_invoice.id,
         ),
         user_id=user_id,
+    )
+    audit_log_service.log_action(
+        db, "confirm", "commercial_invoice", user_id, payload.transaction_id
     )
     return commcercial_invoice

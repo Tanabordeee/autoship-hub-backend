@@ -16,6 +16,7 @@ from app.schemas.insurance import InsuranceCreate
 from app.repositories.insurance import InsuranceRepo
 from app.schemas.insurance import InsuranceConfirm
 import logging
+from app.services.audit_log_service import audit_log_service
 
 
 class InsuranceHeader(BaseModel):
@@ -143,6 +144,7 @@ def extract_insurance(db: Session, file: UploadFile, transaction_id: int, user_i
         TransactionUpdate(status="pending", current_process="insurance"),
         user_id=user_id,
     )
+    audit_log_service.log_action(db, "extract", "insurance", user_id, transaction_id)
     return final_result
 
 
@@ -202,6 +204,9 @@ def confirm_insurance(db: Session, payload: InsuranceConfirm, user_id: int):
             ),
             user_id=user_id,
         )
+        audit_log_service.log_action(
+            db, "confirm", "insurance", user_id, payload.transaction_id
+        )
         return True
     except Exception as e:
         print(e)
@@ -220,6 +225,9 @@ def reject_insurance(db: Session, payload: InsuranceConfirm, user_id: int):
                 insurance_id=payload.insurance_id,
             ),
             user_id=user_id,
+        )
+        audit_log_service.log_action(
+            db, "reject", "insurance", user_id, payload.transaction_id
         )
         return True
     except Exception as e:

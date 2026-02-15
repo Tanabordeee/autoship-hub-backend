@@ -3,48 +3,102 @@ from fastapi.responses import FileResponse
 import os
 
 from sqlalchemy.orm import Session
-from app.services.proforma_invoice_service import create_proforma_invoice, approve_proforma_invoice, reject_proforma_invoice , get_all_proforma_invoice , get_proforma_invoice_by_pi_id ,  get_proforma_invoice_by_id , get_chassis_by_pi_id
+from app.services.proforma_invoice_service import (
+    create_proforma_invoice,
+    approve_proforma_invoice,
+    reject_proforma_invoice,
+    get_all_proforma_invoice,
+    get_proforma_invoice_by_pi_id,
+    get_proforma_invoice_by_id,
+    get_chassis_by_pi_id,
+)
 from app.api.deps import get_db
-from app.schemas.proforma_invoice import CreateProformaInvoice, ApproveProformaInvoice , ChassisRequest
+from app.schemas.proforma_invoice import (
+    CreateProformaInvoice,
+    ApproveProformaInvoice,
+    ChassisRequest,
+)
 from app.api.deps import get_current_user
 from app.models.user import User
 from app.services.proforma_invoice_service import generate_pdf
-from typing import List 
+from typing import List
+
 router = APIRouter()
 
+
 @router.post("/proforma_invoices", response_model=CreateProformaInvoice)
-def create_proforma_invoice_endpoint(payload: CreateProformaInvoice, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def create_proforma_invoice_endpoint(
+    payload: CreateProformaInvoice,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     return create_proforma_invoice(db, payload, current_user.id)
 
+
 @router.post("/proforma_invoices/approve/{pi_id}")
-def approve_proforma_invoice_endpoint(pi_id: str, payload: ApproveProformaInvoice, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    return approve_proforma_invoice(db, pi_id, payload.approver)
+def approve_proforma_invoice_endpoint(
+    pi_id: str,
+    payload: ApproveProformaInvoice,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return approve_proforma_invoice(db, pi_id, payload.approver, current_user.id)
+
 
 @router.post("/proforma_invoices/reject/{pi_id}")
-def reject_proforma_invoice_endpoint(pi_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    return reject_proforma_invoice(db, pi_id)
+def reject_proforma_invoice_endpoint(
+    pi_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return reject_proforma_invoice(db, pi_id, current_user.id)
+
 
 @router.get("/proforma_invoices/{pi_id}/pdf")
-def generate_pdf_endpoint(pi_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def generate_pdf_endpoint(
+    pi_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     pdf_dir = "E:\\job\\autoship-hub-server\\app\\pdf"
     if not os.path.exists(pdf_dir):
         os.makedirs(pdf_dir)
     file_path = os.path.join(pdf_dir, f"invoice_{pi_id}.pdf")
     generate_pdf(pi_id, db, file_path)
-    return FileResponse(file_path, media_type="application/pdf", filename=f"invoice_{pi_id}.pdf")
+    return FileResponse(
+        file_path, media_type="application/pdf", filename=f"invoice_{pi_id}.pdf"
+    )
+
 
 @router.get("/proforma_invoices")
-def get_all_proforma_invoice_endpoint(db:Session = Depends(get_db) , current_user: User = Depends(get_current_user)):
+def get_all_proforma_invoice_endpoint(
+    db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
+):
     return get_all_proforma_invoice(db)
 
+
 @router.get("/proforma_invoices/pi_id/{pi_id}")
-def get_proforma_invoice_by_pi_id_endpoint(pi_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def get_proforma_invoice_by_pi_id_endpoint(
+    pi_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     return get_proforma_invoice_by_pi_id(db, pi_id)
 
+
 @router.get("/proforma_invoices/id/{id}")
-def get_proforma_invoice_by_id_endpoint(id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def get_proforma_invoice_by_id_endpoint(
+    id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     return get_proforma_invoice_by_id(db, id)
 
-@router.post("/proforma_invoices/chassis" , response_model=List[str])
-def get_chassis_by_pi_id_endpoint(payload: ChassisRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+
+@router.post("/proforma_invoices/chassis", response_model=List[str])
+def get_chassis_by_pi_id_endpoint(
+    payload: ChassisRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     return get_chassis_by_pi_id(db, payload.pi_ids)

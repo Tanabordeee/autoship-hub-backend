@@ -3,9 +3,10 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font
 from sqlalchemy.orm import Session
 from app.repositories.lc_repo import LCRepo
+from app.services.audit_log_service import audit_log_service
 
 
-def generate_excel(db: Session, id: int) -> str:
+def generate_excel(db: Session, id: int, transaction_id: int, user_id: int) -> str:
     lc = LCRepo.get_by_id(db, id)
     if not lc:
         raise Exception("LC not found")
@@ -108,5 +109,5 @@ def generate_excel(db: Session, id: int) -> str:
     os.makedirs("exports", exist_ok=True)
     file_path = f"exports/lc_{lc.id}.xlsx"
     wb.save(file_path)
-
+    audit_log_service.log_action(db, "export", "lc", user_id, transaction_id)
     return file_path

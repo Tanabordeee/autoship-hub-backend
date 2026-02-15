@@ -9,6 +9,7 @@ from app.schemas.transaction import TransactionUpdate
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font
 from openpyxl.utils import get_column_letter
+from app.services.audit_log_service import audit_log_service
 
 
 def extract_booking(db: Session, file, transaction_id: int, user_id: int):
@@ -77,6 +78,7 @@ def extract_booking(db: Session, file, transaction_id: int, user_id: int):
         TransactionUpdate(status="pending", current_process="booking"),
         user_id=user_id,
     )
+    audit_log_service.log_action(db, "extract", "booking", user_id, transaction_id)
     return result
 
 
@@ -93,10 +95,11 @@ def create_booking(
         ),
         user_id=user_id,
     )
+    audit_log_service.log_action(db, "create", "booking", user_id, transaction_id)
     return {"id": booking.id}
 
 
-def create_booking_excel(db: Session, id: int):
+def create_booking_excel(db: Session, id: int, transaction_id: int, user_id: int):
     booking = BookingRepo.get_by_id(db, id)
     if not booking:
         raise ValueError("Booking not found")
@@ -149,5 +152,5 @@ def create_booking_excel(db: Session, id: int):
 
     file_path = f"/tmp/booking_{booking.id}.xlsx"
     wb.save(file_path)
-
+    audit_log_service.log_action(db, "export", "booking", user_id, transaction_id)
     return file_path

@@ -25,3 +25,4 @@ class User(Base):
     transactions = relationship(
         "Transaction", secondary="transaction_users", back_populates="users"
     )
+    audit_logs = relationship("AuditLog", back_populates="user")

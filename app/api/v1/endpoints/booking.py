@@ -34,10 +34,11 @@ def create_booking_endpoint(
 @router.get("/booking-excel/{id}")
 def booking_excel_endpoint(
     id: int,
+    transaction_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    file_path = create_booking_excel(db, id)
+    file_path = create_booking_excel(db, id, transaction_id, current_user.id)
     return FileResponse(
         file_path,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

@@ -39,3 +39,4 @@ class Transaction(Base):
         "VehicleRegister", back_populates="transaction", uselist=False
     )
     bv = relationship("BV", back_populates="transaction", uselist=False)
+    audit_logs = relationship("AuditLog", back_populates="transaction")

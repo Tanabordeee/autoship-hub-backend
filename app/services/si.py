@@ -14,6 +14,7 @@ import re
 from datetime import datetime
 import logging
 import num2words
+from app.services.audit_log_service import audit_log_service
 
 logger = logging.getLogger(__name__)
 
@@ -83,6 +84,7 @@ def create_si(db: Session, payload: SICreate, user_id: int):
         TransactionUpdate(status="pending", current_process="si"),
         user_id=user_id,
     )
+    audit_log_service.log_action(db, "create", "si", user_id, payload.transaction_id)
     return {"output_path": output_path, "si_id": si.id}
 
 
@@ -93,4 +95,5 @@ def confirm_si(db: Session, transaction_id: int, si_id: int, user_id: int):
         TransactionUpdate(status="completed", current_process="si", si_id=si_id),
         user_id=user_id,
     )
+    audit_log_service.log_action(db, "confirm", "si", user_id, transaction_id)
     return True
