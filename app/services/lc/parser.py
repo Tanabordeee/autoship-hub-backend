@@ -1,4 +1,6 @@
 import re
+import ollama
+import json
 
 
 def clean_text_common(text: str) -> str:
@@ -68,87 +70,162 @@ def clean_45a_text(text: str) -> str:
     return text
 
 
+def extract_swift_field(full_text: str, field_tag: str):
+    """
+    Extract a SWIFT MT700 field block using regex.
+    Example: field_tag = "46A"
+    """
+    # Robust regex for SWIFT fields like :46A: or : 46A:
+    pattern = rf":\s*{field_tag}\s*:?(.*?)(?=\n\s*:\s*\d{2}[A-Z]?:|\Z)"
+
+    match = re.search(pattern, full_text, re.DOTALL | re.IGNORECASE)
+
+    if match:
+        content = match.group(1).strip()
+        # Remove common OCR/page header noise
+        return clean_text_common(content)
+
+    return None
+
+
+def call_gemma(header, prompt):
+    response = ollama.chat(
+        model="qwen2.5:7b-instruct",
+        messages=[
+            {
+                "role": "system",
+                "content": f"""
+                You are a SWIFT LC (MT700) field extraction engine.
+Extract ONLY field 46A (DOCUMENTS REQUIRED).
+
+Return only conditions
+FIND CONTENT THAT ABOUT {header}
+
+Rules:
+- Extract ONLY documents under field 46A
+- Preserve original wording exactly
+- Do NOT summarize
+- Do NOT explain
+                """,
+            },
+            {"role": "user", "content": prompt},
+        ],
+        options={"temperature": 0},
+    )
+    content = response["message"]["content"]
+    return content
+
+
+def call_gemma_annexure(prompt):
+    response = ollama.chat(
+        model="qwen2.5:7b-instruct",
+        messages=[
+            {
+                "role": "system",
+                "content": """
+                You are a SWIFT LC (MT700) field extraction engine.
+
+Extract ONLY field 46A (DOCUMENTS REQUIRED).
+
+From field 46A, find **all content that mentions annexures in the INSPECTION_CERTIFICATE**.
+
+Return JSON with every annexure. Use the following format:
+
+"annexures": [
+{ "code": "A", "text": "..." },
+{ "code": "B", "text": "..." },
+{ "code": "C", "text": "..." }
+]
+
+Rules:
+- Extract ONLY documents under field 46A.
+- Preserve original wording exactly.
+- Do NOT summarize.
+- Do NOT explain.
+- Return valid JSON only.
+- Include **all annexures mentioned**, not only code A.
+""",
+            },
+            {"role": "user", "content": prompt},
+        ],
+        options={"temperature": 0},
+    )
+    content = response["message"]["content"]
+
+    # Try to extract JSON from markdown if present
+    json_match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", content, re.DOTALL)
+    if json_match:
+        content = json_match.group(1)
+    else:
+        # Try to find the first '{' and last '}'
+        start = content.find("{")
+        end = content.rfind("}")
+        if start != -1 and end != -1:
+            content = content[start : end + 1]
+
+    return content
+
+
 def extract_document_require_46A(full_text: str):
-    patterns = {
-        1: r"46A\s*:\s*DOCUMENTS\s*REQUIRED\s*(.+?)(?=\s*2\))",
-        2: r"2\)\s*(.+?)(?=\s*3\))",
-        3: r"3\)\s*(.+?)(?=\s*4\))",
-        4: r"4\)\s*(.+?)(?=\s*5\))",
-        5: r"5\)\s*(.+?)(?=\s*6\))",
-        6: r"6\)\s*(.+?)(?=\s*7\))",
-        7: r"7\)\s*(.+?)(?=\s*:?\s*47A\s*:|$)",
-    }
-
-    doc_types = {
-        1: "INVOICE",
-        2: "BILL_OF_LADING",
-        3: "INSURANCE",
-        4: "CERTIFICATE_OF_REGISTRATION",
-        5: "TRANSLATION",
-        6: "INSPECTION_CERTIFICATE",
-        7: "INSPECTION_CERTIFICATE",
-    }
-
     items = []
+    text = extract_swift_field(full_text, "46A")
 
-    for item_no in range(1, 8):
-        match = re.search(patterns[item_no], full_text, re.DOTALL | re.IGNORECASE)
-        if not match:
-            continue
+    items.append(
+        {"item_no": 1, "doc_type": "INVOICE", "conditions": call_gemma("INVOICE", text)}
+    )
+    items.append(
+        {
+            "item_no": 2,
+            "doc_type": "BILL_OF_LADING",
+            "conditions": call_gemma("BILL_OF_LADING", text),
+        }
+    )
+    items.append(
+        {
+            "item_no": 3,
+            "doc_type": "INSURANCE",
+            "conditions": call_gemma("INSURANCE", text),
+        }
+    )
 
-        text = match.group(1).strip()
+    # Handle optional annexures extraction
+    annexures = []
+    annexure_raw = call_gemma_annexure(text)
+    try:
+        if annexure_raw:
+            annexure_json = json.loads(annexure_raw)
+            annexures = annexure_json.get("annexures", [])
+    except Exception as e:
+        print(f"Error parsing annexures JSON: {e}")
+        print(f"Raw response: {annexure_raw}")
 
-        # =================================================
-        # CLEANUP LOGIC (ใช้ชุดเดิม 100% กับทุก item)
-        # =================================================
-        text = clean_text_common(text)
-
-        text = re.sub(r"\n\s*\n+", "\n", text).strip()
-
-        item = {"item_no": item_no, "doc_type": doc_types[item_no], "conditions": text}
-
-        # =================================================
-        # SPECIAL FORMAT : ITEM 6
-        # =================================================
-        if item_no == 6:
-            annexures = []
-
-            annexure_block_match = re.search(
-                r"ORIGINAL\s+CERTIFICATE\s+OF\s+PRE\s+SHIPMENT\s+INSPECTION.*?"
-                r"THIS\s+REPORT\s+SHOULD\s+HAVE\s+THE\s+FOLLOWING\s+ANNEXTURE\.(.+?)"
-                r"(?=\n?\s*THE\s+STAMP\s+OF|\n?\s*\d+\)|$)",
-                item["conditions"],
-                flags=re.DOTALL | re.IGNORECASE,
-            )
-
-            if annexure_block_match:
-                annexure_block = annexure_block_match.group(1)
-
-                annexure_matches = re.findall(
-                    r"\(([A-C])\)\s*(.+?)(?=\n?\([A-C]\)|$)",
-                    annexure_block,
-                    flags=re.DOTALL | re.IGNORECASE,
-                )
-
-                annexures = [
-                    {
-                        "code": code.upper(),
-                        "text": re.sub(r"\n\s*\n+", "\n", body).strip(),
-                    }
-                    for code, body in annexure_matches
-                ]
-
-            if annexures:
-                item["annexures"] = annexures
-
-            # ลบ annexure block ออกจาก conditions (ให้เหลือแต่ requirement หลัก)
-            item["conditions"] = re.sub(
-                r"THIS\s+REPORT\s+SHOULD\s+HAVE\s+THE\s+FOLLOWING\s+ANNEXTURE\..*",
-                "",
-                item["conditions"],
-                flags=re.DOTALL | re.IGNORECASE,
-            ).strip()
-
-        items.append(item)
-
+    items.append(
+        {
+            "item_no": 4,
+            "doc_type": "CERTIFICATE_OF_REGISTRATION",
+            "conditions": call_gemma("CERTIFICATE_OF_REGISTRATION", text),
+            "annexures": annexures,
+        }
+    )
+    items.append(
+        {
+            "item_no": 5,
+            "doc_type": "TRANSLATION",
+            "conditions": call_gemma("TRANSLATION", text),
+        }
+    )
+    items.append(
+        {
+            "item_no": 6,
+            "doc_type": "INSPECTION_CERTIFICATE",
+            "conditions": call_gemma("INSPECTION_CERTIFICATE", text),
+        }
+    )
+    items.append(
+        {
+            "item_no": 7,
+            "doc_type": "BENEFICIARY_CERTIFICATE",
+            "conditions": call_gemma("BENEFICIARY_CERTIFICATE", text),
+        }
+    )
     return {"items": items}
