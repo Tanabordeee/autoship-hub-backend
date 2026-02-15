@@ -31,10 +31,9 @@ class BV(Base):
     lc_no = Column(Text)
     lc_id = Column(BigInteger, ForeignKey("lc.id"))
     user_id = Column(BigInteger, ForeignKey("users.id"))
-    transaction_id = Column(BigInteger, ForeignKey("transactions.id"))
 
     # Relationships
     user = relationship("User", back_populates="bvs")
     lc = relationship("LC", back_populates="bvs")
     pi_items = relationship("PiItem", back_populates="bv")
-    transaction = relationship("Transaction", back_populates="bvs")
+    transaction = relationship("Transaction", back_populates="bv", uselist=False)

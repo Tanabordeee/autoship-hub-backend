@@ -32,7 +32,6 @@ class BVRepository:
             lc_no=payload.lc_no,
             user_id=payload.user_id,
             lc_id=payload.lc_id,
-            transaction_id=payload.transaction_id,
         )
         db.add(bv)
         db.commit()

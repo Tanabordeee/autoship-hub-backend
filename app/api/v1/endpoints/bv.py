@@ -26,7 +26,7 @@ def create_bv_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return create_bv(db, payload)
+    return create_bv(db, payload, payload.transaction_id, current_user.id)
 
 
 @router.post("/confirm-bv")

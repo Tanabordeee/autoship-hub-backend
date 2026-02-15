@@ -88,7 +88,9 @@ def create_booking(
     TransactionRepo.update(
         db,
         transaction_id,
-        TransactionUpdate(status="completed", current_process="booking"),
+        TransactionUpdate(
+            status="completed", current_process="booking", booking_id=booking.id
+        ),
         user_id=user_id,
     )
     return {"id": booking.id}

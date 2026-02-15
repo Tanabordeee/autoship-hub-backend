@@ -65,7 +65,6 @@ class Booking(BaseModel):
     paperless_code: Optional[str] = None
     create_at: Optional[datetime] = None
     lc_id: int
-    transaction_id: int
     fob_at: Optional[str] = None
     quantity: Optional[str] = None
     carrier_booking_no: Optional[str] = None

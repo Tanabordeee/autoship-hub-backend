@@ -23,7 +23,6 @@ class VehicleRegister(Base):
     province = Column(Text)
     model = Column(Text)
     fuel_type = Column(Text)
-    transaction_id = Column(BigInteger, ForeignKey("transactions.id"), nullable=True)
     lc_id = Column(BigInteger, ForeignKey("lc.id"), nullable=True)
     user_id = Column(BigInteger, ForeignKey("users.id"), nullable=True)
 
@@ -31,4 +30,6 @@ class VehicleRegister(Base):
     lc = relationship("LC", back_populates="vehicle_registers")
     user = relationship("User", back_populates="vehicle_registers")
     pi_items = relationship("PiItem", back_populates="vehicle_register")
-    transaction = relationship("Transaction", back_populates="vehicle_registers")
+    transaction = relationship(
+        "Transaction", back_populates="vehicle_register", uselist=False
+    )

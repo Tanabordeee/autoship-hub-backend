@@ -33,7 +33,6 @@ class Booking(Base):
     paperless_code = Column(Text)
     create_at = Column(DateTime(timezone=True), server_default=func.now())
     lc_id = Column(BigInteger, ForeignKey("lc.id"))
-    transaction_id = Column(BigInteger, ForeignKey("transactions.id"))
     fob_at = Column(Text)
     quantity = Column(Text)
     carrier_booking_no = Column(Text)
@@ -41,4 +40,4 @@ class Booking(Base):
     # Relationships
     user = relationship("User", back_populates="bookings")
     lc = relationship("LC", back_populates="bookings")
-    transaction = relationship("Transaction", back_populates="bookings")
+    transaction = relationship("Transaction", back_populates="booking", uselist=False)

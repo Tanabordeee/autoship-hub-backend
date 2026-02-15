@@ -4,9 +4,7 @@ from app.schemas.vehicle_register import VehicleRegisterCreate
 
 
 class VehicleRegisterRepo:
-    def create(
-        db: Session, payload: VehicleRegisterCreate, user_id: int, transaction_id: int
-    ):
+    def create(db: Session, payload: VehicleRegisterCreate, user_id: int):
         vehicle_register = VehicleRegister(
             model_year=payload.model_year,
             seat=payload.seat,
@@ -26,7 +24,6 @@ class VehicleRegisterRepo:
             fuel_type=payload.fuel_type,
             lc_id=payload.lc_id,
             user_id=user_id,
-            transaction_id=transaction_id,
         )
         db.add(vehicle_register)
         db.commit()

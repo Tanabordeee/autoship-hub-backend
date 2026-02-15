@@ -206,7 +206,7 @@ def extract_bv(db: Session, file: UploadFile, transaction_id: int, user_id: int)
     return data
 
 
-def create_bv(db: Session, payload: BVCreate):
+def create_bv(db: Session, payload: BVCreate, transaction_id: int, user_id: int):
     payload.bv_ref_no = payload.bv_ref_no.strip()
     existing_bv = BVRepository.get_latest_version_by_bv_ref_no(db, payload.bv_ref_no)
     if existing_bv:
@@ -231,6 +231,12 @@ def create_bv(db: Session, payload: BVCreate):
     logger.info(f"Creating BV with version {payload.version_bv}")
     bv = BVRepository.create(db, payload)
     ProformaInvoiceRepo.update_bv_pi_items(db, payload.chassis, bv.id)
+    TransactionRepo.update(
+        db,
+        transaction_id,
+        TransactionUpdate(status="completed", current_process="bv", bv_id=bv.id),
+        user_id=user_id,
+    )
     return bv
 
 

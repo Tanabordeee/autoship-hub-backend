@@ -59,14 +59,18 @@ def extract_vehicle_register(db: Session, file, transaction_id: int):
 def create_vehicle_register(
     db: Session, payload: VehicleRegisterCreate, user_id: int, transaction_id: int
 ):
-    vehicle_register = VehicleRegisterRepo.create(db, payload, user_id, transaction_id)
+    vehicle_register = VehicleRegisterRepo.create(db, payload, user_id)
     ProformaInvoiceRepo.update_vehicle_register_pi_items(
         db, payload.chassis, vehicle_register.id
     )
     TransactionRepo.update(
         db,
         transaction_id,
-        TransactionUpdate(status="completed", current_process="vehicle_register"),
+        TransactionUpdate(
+            status="completed",
+            current_process="vehicle_register",
+            vehicle_register_id=vehicle_register.id,
+        ),
     )
     return {"id": vehicle_register.id}
 

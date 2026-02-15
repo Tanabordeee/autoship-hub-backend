@@ -14,6 +14,9 @@ class Transaction(Base):
     insurance_id = Column(Integer, ForeignKey("insurance.id"))
     commercial_invoice_id = Column(Integer, ForeignKey("commercial_invoice.id"))
     bencer_id = Column(Integer, ForeignKey("bencer.id"))
+    booking_id = Column(Integer, ForeignKey("booking.id"))
+    vehicle_register_id = Column(Integer, ForeignKey("vehicle_register.id"))
+    bv_id = Column(Integer, ForeignKey("bv.id"))
     # Singular Relationships (Transaction holds the FK)
     lc = relationship("LC", back_populates="transactions")
     si = relationship("SI", back_populates="transactions")
@@ -30,10 +33,8 @@ class Transaction(Base):
     proforma_invoices = relationship(
         "ProformaInvoice", back_populates="transaction", cascade="all, delete-orphan"
     )
-    bookings = relationship(
-        "Booking", back_populates="transaction", cascade="all, delete-orphan"
+    booking = relationship("Booking", back_populates="transaction", uselist=False)
+    vehicle_register = relationship(
+        "VehicleRegister", back_populates="transaction", uselist=False
     )
-    vehicle_registers = relationship(
-        "VehicleRegister", back_populates="transaction", cascade="all, delete-orphan"
-    )
-    bvs = relationship("BV", back_populates="transaction", cascade="all, delete-orphan")
+    bv = relationship("BV", back_populates="transaction", uselist=False)

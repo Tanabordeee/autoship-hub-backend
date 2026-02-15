@@ -33,7 +33,6 @@ class BookingRepo:
             carrier_booking_no=payload.carrier_booking_no,
             user_id=user_id,
             lc_id=payload.lc_id,
-            transaction_id=payload.transaction_id,
         )
         db.add(booking)
         db.commit()

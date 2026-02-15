@@ -38,6 +38,12 @@ class TransactionRepo:
             transaction.commercial_invoice_id = payload.commercial_invoice_id
         if payload.bencer_id:
             transaction.bencer_id = payload.bencer_id
+        if payload.booking_id:
+            transaction.booking_id = payload.booking_id
+        if payload.vehicle_register_id:
+            transaction.vehicle_register_id = payload.vehicle_register_id
+        if payload.bv_id:
+            transaction.bv_id = payload.bv_id
         if user_id:
             user = db.query(User).filter(User.id == user_id).first()
             if user and user not in transaction.users:
@@ -45,3 +51,6 @@ class TransactionRepo:
         db.commit()
         db.refresh(transaction)
         return transaction
+
+    def get_all(db: Session):
+        return db.query(Transaction).all()
