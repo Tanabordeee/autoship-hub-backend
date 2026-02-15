@@ -38,7 +38,7 @@ def generate_bencer(db: Session, payload: BencerGenerate):
         chassis_no=vr.chassis_no,
         engine_no=vr.engine_no,
         date=payload.date,
-        direction=payload.director,
+        director=payload.director,
         bank=commcercial_invoice.bank,
         beneficiary_to_certify=beneficiary_to_certify,
     )
@@ -56,11 +56,7 @@ def generate_bencer(db: Session, payload: BencerGenerate):
     TransactionRepo.update(
         db,
         payload.transaction_id,
-        TransactionUpdate(
-            db,
-            payload.transaction_id,
-            TransactionUpdate(status="pending", current_process="bencer"),
-        ),
+        TransactionUpdate(status="pending", current_process="bencer"),
     )
     return {"output_path": output_path}
 
