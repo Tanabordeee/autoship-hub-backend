@@ -435,7 +435,7 @@
                 <tr>
                     <td class="text-center border-r"></td>
                     <td class="border-r p-1">
-                        {{lc.A_46A}}
+                        {{lc.A_46A | replace('\n', '<br>') | safe}}
                     </td>
                     <td class="border-r"></td>
                     <td class="border-r"></td>
@@ -445,7 +445,7 @@
                 <tr>
                     <td class="text-center border-r"></td>
                     <td class="border-r p-1">
-                        {{lc.beneficiary_to_certify}}
+                        {{lc.beneficiary_to_certify | replace('\n', '<br>') | safe}}
                     </td>
                     <td class="border-r"></td>
                     <td class="border-r"></td>
