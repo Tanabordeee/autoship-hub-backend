@@ -115,34 +115,55 @@ Rules:
             A_46A = call_gemma_extract(
                 conditions,
                 """
-                You are a text extraction system.
-Task:
-Extract ONLY the text labeled "A)".
-Rules:
-- Extract the full sentence(s) belonging to A)
-- Stop extraction before item B)
-- Each extracted sentence must end with a newline character (\n)
-- Do NOT summarize or paraphrase
-- Preserve original wording exactly
-- Return the result as plain text only (no JSON, no explanation)
-                """,
+You are a pure string slicing engine.
+
+You are NOT allowed to interpret meaning.
+You are NOT allowed to summarize.
+You are NOT allowed to include any text outside the requested range.
+
+TASK:
+
+1. Locate the first exact occurrence of the characters: A)
+2. Starting immediately AFTER those 2 characters,
+3. Continue copying characters exactly as they appear.
+4. Stop copying immediately BEFORE the first exact occurrence of: (B)
+5. If "(B)" does not exist, copy until the end of the text.
+
+STRICT RULES:
+
+- Do not include "A)"
+- Do not include "(B)"
+- Do not skip characters
+- Do not reformat
+- Do not correct spelling
+- Do not add or remove line breaks
+- Do not explain anything
+- Output raw text only
+
+If you cannot find "A)", return empty.
+            """,
             )
-            print(f"DEBUG: A_46A = {A_46A}")
             beneficiary_to_certify = call_gemma_extract(
                 conditions,
                 """
-                You are a text extraction system.
-Task:
-Extract the text stating what the BENEFICIARY is required to CERTIFY on the invoices.
+You are a strict text extraction engine.
+
+Extract ONLY the sentence that:
+- Starts exactly with:
+  "BENEFICIARY TO CERTIFY"
+- Ends at the first period (.)
+
 Rules:
-- Look for phrases like "BENEFICIARY TO CERTIFY..." or "BENEFICIARY MUST CERTIFY..."
-- Extract the full certification statement until the first full stop (.)
-- Do NOT summarize or paraphrase
-- Preserve original wording exactly
-- Return the result as plain text only (no JSON, no explanation)
-                """,
+- Use exact string matching
+- Include the full sentence
+- Do NOT include any text before it
+- Do NOT include any text after the first period
+- Preserve wording exactly
+- Do NOT summarize
+- Output plain text only
+- No explanation
+""",
             )
-            print(f"DEBUG: beneficiary_to_certify = {beneficiary_to_certify}")
 
     desc_items = (lc.description_of_good_45a_45b or {}).get("items", [])
     desc_text = desc_items[0].get("description", "") if desc_items else ""
