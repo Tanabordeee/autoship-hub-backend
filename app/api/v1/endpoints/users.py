@@ -1,12 +1,16 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.api.deps import get_db
-from app.schemas.user import UserCreate, UserOut
+from app.schemas.user import UserCreate, UserOut, UserUpdate
 from app.schemas.transaction import TransactionOut
 from app.services.user_service import (
     create_user,
     get_all_approver,
     get_user_transactions,
+    get_all_users,
+    get_user_by_id,
+    update_user,
+    delete_user,
 )
 from app.api.deps import get_current_user, RoleChecker
 from app.models.user import User
@@ -20,7 +24,41 @@ def register(
     db: Session = Depends(get_db),
     dependencies=[Depends(RoleChecker(["admin"]))],
 ):
-    return create_user(db, user.email, user.password, user.role)
+    return create_user(db, user.email, user.password, user.role, user.name)
+
+
+@router.get(
+    "/users",
+    response_model=list[UserOut],
+    dependencies=[Depends(RoleChecker(["admin"]))],
+)
+def read_users(db: Session = Depends(get_db)):
+    return get_all_users(db)
+
+
+@router.get(
+    "/users/{user_id}",
+    response_model=UserOut,
+    dependencies=[Depends(RoleChecker(["admin"]))],
+)
+def read_user(user_id: int, db: Session = Depends(get_db)):
+    return get_user_by_id(db, user_id)
+
+
+@router.put(
+    "/users/{user_id}",
+    response_model=UserOut,
+    dependencies=[Depends(RoleChecker(["admin"]))],
+)
+def update_user_endpoint(
+    user_id: int, user_update: UserUpdate, db: Session = Depends(get_db)
+):
+    return update_user(db, user_id, user_update)
+
+
+@router.delete("/users/{user_id}", dependencies=[Depends(RoleChecker(["admin"]))])
+def delete_user_endpoint(user_id: int, db: Session = Depends(get_db)):
+    return delete_user(db, user_id)
 
 
 @router.get("/me", response_model=UserOut)
