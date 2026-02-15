@@ -19,6 +19,7 @@ class TransactionUpdate(BaseModel):
     booking_id: Optional[int] = None
     vehicle_register_id: Optional[int] = None
     bv_id: Optional[int] = None
+    proforma_invoice_id: Optional[int] = None
 
 
 class TransactionOut(BaseModel):
@@ -34,6 +35,7 @@ class TransactionOut(BaseModel):
     booking_id: Optional[int] = None
     vehicle_register_id: Optional[int] = None
     bv_id: Optional[int] = None
+    proforma_invoice_id: Optional[int] = None
 
     class Config:
         from_attributes = True

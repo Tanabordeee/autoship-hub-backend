@@ -2,26 +2,20 @@ from sqlalchemy.orm import Session, joinedload
 from app.models.proforma_invoice import ProformaInvoice
 from app.models.proforma_invoice import PiItem
 from app.models.transaction import Transaction
+from app.schemas.transaction import TransactionCreate, TransactionUpdate
 from app.schemas.proforma_invoice import CreateProformaInvoice
 from app.models.customer import Customer
 from app.repositories.transaction_repo import TransactionRepo
-from app.schemas.transaction import TransactionCreate
 from typing import List
 
 
 class ProformaInvoiceRepo:
     def get_by_pi_id(db: Session, pi_id: str):
-        return (
-            db.query(ProformaInvoice)
-            .options(joinedload(ProformaInvoice.transaction))
-            .filter(ProformaInvoice.pi_id == pi_id)
-            .first()
-        )
+        return db.query(ProformaInvoice).filter(ProformaInvoice.pi_id == pi_id).first()
 
     def get_by_id(db: Session, id: int):
         return (
             db.query(ProformaInvoice)
-            .options(joinedload(ProformaInvoice.transaction))
             .options(joinedload(ProformaInvoice.items))
             .filter(ProformaInvoice.id == id)
             .first()
@@ -41,7 +35,7 @@ class ProformaInvoiceRepo:
                 Transaction.current_process,
             )
             .join(Customer)
-            .join(Transaction)
+            .join(Transaction, Transaction.proforma_invoice_id == ProformaInvoice.id)
             .all()
         )
 
@@ -90,11 +84,21 @@ class ProformaInvoiceRepo:
             total_price=payload.total_price,
             pi_approver=payload.pi_approver,
             user_id=user_id,
-            transaction_id=transaction.id,
             customer_id=customer.id,
         )
         db.add(pi)
         db.flush()
+
+        TransactionRepo.update(
+            db,
+            transaction.id,
+            TransactionUpdate(
+                status="pending",
+                current_process="proforma_invoice",
+                proforma_invoice_id=pi.id,
+            ),
+            user_id=user_id,
+        )
         item_map = {}
         # First pass: Create all items
         for item_data in payload.items:
@@ -127,10 +131,17 @@ class ProformaInvoiceRepo:
             raise BaseException("Proforma Invoice not found")
         if approver:
             pi.pi_approver = approver
-        pi.transaction.status = status
+        transaction = (
+            db.query(Transaction)
+            .filter(Transaction.proforma_invoice_id == pi.id)
+            .first()
+        )
+        if transaction:
+            transaction.status = status
         db.commit()
         db.refresh(pi)
-        db.refresh(pi.transaction)
+        if transaction:
+            db.refresh(transaction)
         return pi
 
     def get_chassis_by_pi_id(db: Session, pi_ids: int):
@@ -171,8 +182,8 @@ class ProformaInvoiceRepo:
 
     def get_transaction_by_pi_id(db: Session, pi_ids: List[int]):
         transactions = (
-            db.query(ProformaInvoice.transaction_id)
-            .filter(ProformaInvoice.id.in_(pi_ids))
+            db.query(Transaction.id)
+            .filter(Transaction.proforma_invoice_id.in_(pi_ids))
             .all()
         )
         return [r[0] for r in transactions]

@@ -44,6 +44,8 @@ class TransactionRepo:
             transaction.vehicle_register_id = payload.vehicle_register_id
         if payload.bv_id:
             transaction.bv_id = payload.bv_id
+        if payload.proforma_invoice_id:
+            transaction.proforma_invoice_id = payload.proforma_invoice_id
         if user_id:
             user = db.query(User).filter(User.id == user_id).first()
             if user and user not in transaction.users:

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, Text, ForeignKey
+from sqlalchemy import Column, Integer, Text, ForeignKey, BigInteger
 from sqlalchemy.orm import relationship
 from app.db.base_class import Base
 
@@ -17,6 +17,7 @@ class Transaction(Base):
     booking_id = Column(Integer, ForeignKey("booking.id"))
     vehicle_register_id = Column(Integer, ForeignKey("vehicle_register.id"))
     bv_id = Column(Integer, ForeignKey("bv.id"))
+    proforma_invoice_id = Column(BigInteger, ForeignKey("proforma_invoice.id"))
     # Singular Relationships (Transaction holds the FK)
     lc = relationship("LC", back_populates="transactions")
     si = relationship("SI", back_populates="transactions")
@@ -30,8 +31,8 @@ class Transaction(Base):
         "User", secondary="transaction_users", back_populates="transactions"
     )
 
-    proforma_invoices = relationship(
-        "ProformaInvoice", back_populates="transaction", cascade="all, delete-orphan"
+    proforma_invoice = relationship(
+        "ProformaInvoice", back_populates="transaction", uselist=False
     )
     booking = relationship("Booking", back_populates="transaction", uselist=False)
     vehicle_register = relationship(

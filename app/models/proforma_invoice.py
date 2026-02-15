@@ -44,9 +44,6 @@ class ProformaInvoice(Base):
     created_at = Column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
-    transaction_id = Column(
-        BigInteger, ForeignKey("transactions.id", ondelete="CASCADE"), nullable=False
-    )
     customer_id = Column(
         BigInteger, ForeignKey("customers.id", ondelete="CASCADE"), nullable=True
     )
@@ -60,7 +57,9 @@ class ProformaInvoice(Base):
         order_by="PiItem.item_no",
     )
     customer = relationship("Customer", back_populates="proforma_invoices")
-    transaction = relationship("Transaction", back_populates="proforma_invoices")
+    transaction = relationship(
+        "Transaction", back_populates="proforma_invoice", uselist=False
+    )
     lc = relationship("LC", back_populates="proforma_invoices")
 
 
