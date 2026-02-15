@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f3f4f6;
+        }
+
+        .a4 {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 20mm;
+            margin: 20px auto;
+            background-color: white;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            box-sizing: border-box;
+        }
+
+        .flex {
+            display: flex;
+        }
+
+        .flex-col {
+            flex-direction: column;
+        }
+
+        .justify-end {
+            justify-content: flex-end;
+        }
+
+        .justify-center {
+            justify-content: center;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .gap-20 {
+            gap: 5rem;
+        }
+
+        .font-bold {
+            font-weight: bold;
+        }
+
+        .font-medium {
+            font-weight: 500;
+        }
+
+        .text-xs {
+            font-size: 0.75rem;
+        }
+
+        .text-sm {
+            font-size: 0.875rem;
+        }
+
+        .text-base {
+            font-size: 1rem;
+        }
+
+        .text-lg {
+            font-size: 1.125rem;
+        }
+
+        .mt-5 {
+            margin-top: 1.25rem;
+        }
+
+        .mt-16 {
+            margin-top: 4rem;
+        }
+
+        .mt-20 {
+            margin-top: 5rem;
+        }
+
+        .ml-5 {
+            margin-left: 1.25rem;
+        }
+
+        .my-10 {
+            margin-top: 2.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .w-28 {
+            width: 7rem;
+        }
+
+        .w-30-percent {
+            width: 30%;
+        }
+
+        .border-t-dashed {
+            border: none;
+            border-top: 1px dashed black;
+        }
+
+        @media print {
+            body {
+                background-color: white;
+            }
+
+            .a4 {
+                box-shadow: none;
+                border: none;
+                margin: 0;
+                width: 100%;
+                min-height: auto;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="a4 text-xs">
+        <div class="flex">
+            <img src="{{logo_url}}" alt="" class="w-28" />
+            <div class="flex flex-col">
+                <p class="mt-5 font-bold text-xs">PAP Prosperity Co Ltd 28, Soi Petchkasem 36, Pakkhlong
+                    Paseecharoen Paseecharoen,</p>
+                <p class="font-bold text-xs">Bangkok, Thailand 10160</p>
+            </div>
+        </div>
+        <div class="flex justify-end my-10">
+            <p class="font-bold text-sm">{{ date }}</p>
+        </div>
+        <div class="ml-5">
+            <p class="font-bold text-lg">TO WHOM IT MAY CONCERN</p>
+            <p class="text-base">THE DOCUMENTARY CREDIT NUMBER. {{lc_credit_number}}</p>
+            <p class="text-base">DATE OF ISSUE : {{date_of_issue}}</p>
+            <p class="text-base">ISSUING BANK : {{bank}}</p>
+        </div>
+        <div class="ml-5 my-10">
+            <p style="font-size: medium;">{{beneficiary_to_certify}}
+            </p>
+        </div>
+        <div class="flex gap-20 justify-center">
+            <div class="flex flex-col text-center">
+                <p class="text-base font-medium">CHASSIS NO.</p>
+                <p class="text-base font-medium">{{chassis_no}}</p>
+            </div>
+            <div class="flex flex-col text-center">
+                <p class="text-base font-medium">ENGINE NO.</p>
+                <p class="text-base font-medium">{{engine_no}}</p>
+            </div>
+        </div>
+        <div class="ml-5 mt-20">
+            <p style="font-size: medium;">SHOULD YOU HAVE ANY QUESTION PLEASE FEEL FREE TO CONTACT US</p>
+        </div>
+        <div class="ml-5 mt-16">
+            <p class="text-base">SINCERELY YOURS.</p>
+            <div class="w-30-percent mt-20 text-base font-medium">
+                <hr class="border-t-dashed" />
+                <p class="mt-5">{{director}}</p>
+                <p>DIRECTOR</p>
+                <p>PAP PROSPERITY CO LTD</p>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
