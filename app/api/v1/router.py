@@ -10,6 +10,7 @@ from app.api.v1.endpoints import bl
 from app.api.v1.endpoints import bv
 from app.api.v1.endpoints import insurance
 from app.api.v1.endpoints import commercial_invoice
+from app.api.v1.endpoints import bencer
 
 api_router = APIRouter()
 api_router.include_router(users.router, tags=["users"])
@@ -23,3 +24,4 @@ api_router.include_router(bl.router, tags=["bl"])
 api_router.include_router(bv.router, tags=["bv"])
 api_router.include_router(insurance.router, tags=["insurance"])
 api_router.include_router(commercial_invoice.router, tags=["commercial_invoice"])
+api_router.include_router(bencer.router, tags=["bencer"])
