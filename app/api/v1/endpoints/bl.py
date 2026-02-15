@@ -22,7 +22,7 @@ def extract_bl_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    result = extract_bl(db, file, transaction_id)
+    result = extract_bl(db, file, transaction_id, current_user.id)
     return result
 
 
@@ -50,7 +50,7 @@ def confirm_bl_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return confirm_bl(db, payload.transaction_id, payload.bl_id)
+    return confirm_bl(db, payload.transaction_id, payload.bl_id, current_user.id)
 
 
 @router.post("/reject-bl")
@@ -59,4 +59,4 @@ def reject_bl_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return reject_bl(db, payload.transaction_id)
+    return reject_bl(db, payload.transaction_id, current_user.id)

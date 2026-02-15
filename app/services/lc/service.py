@@ -42,6 +42,7 @@ def create_lc(db: Session, payload: LCCreate, user_id: int, pi_id: list[int]):
             db,
             transaction_id,
             TransactionUpdate(status="completed", current_process="lc", lc_id=lc.id),
+            user_id=user_id,
         )
     return lc
 
@@ -298,6 +299,9 @@ def extract_lc(db: Session, file: UploadFile, user_id: int, transaction_id: int)
         "text": full_text,
     }
     TransactionRepo.update(
-        db, transaction_id, TransactionUpdate(status="pending", current_process="lc")
+        db,
+        transaction_id,
+        TransactionUpdate(status="pending", current_process="lc"),
+        user_id=user_id,
     )
     return response_data

@@ -104,7 +104,7 @@ def clean_ocr_text(text: str) -> str:
 # =========================
 # Extract BV (หน้าแรกเท่านั้น)
 # =========================
-def extract_bv(db: Session, file: UploadFile, transaction_id: int):
+def extract_bv(db: Session, file: UploadFile, transaction_id: int, user_id: int):
     filename = file.filename.lower()
 
     if filename.endswith(".pdf"):
@@ -201,6 +201,7 @@ def extract_bv(db: Session, file: UploadFile, transaction_id: int):
         db,
         int(transaction_id),
         TransactionUpdate(status="pending", current_process="bv"),
+        user_id=user_id,
     )
     return data
 
@@ -233,24 +234,26 @@ def create_bv(db: Session, payload: BVCreate):
     return bv
 
 
-def confirm_bv(db: Session, transaction_id: int):
+def confirm_bv(db: Session, transaction_id: int, user_id: int):
     try:
         TransactionRepo.update(
             db,
             int(transaction_id),
             TransactionUpdate(status="confirm", current_process="bv"),
+            user_id=user_id,
         )
     except Exception as e:
         print(e)
     return True
 
 
-def reject_bv(db: Session, transaction_id: int):
+def reject_bv(db: Session, transaction_id: int, user_id: int):
     try:
         TransactionRepo.update(
             db,
             int(transaction_id),
             TransactionUpdate(status="reject", current_process="bv"),
+            user_id=user_id,
         )
     except Exception as e:
         print(e)

@@ -13,7 +13,7 @@ from app.schemas.bencer import CreateBencer
 from app.repositories.bencer import BencerRepo
 
 
-def generate_bencer(db: Session, payload: BencerGenerate):
+def generate_bencer(db: Session, payload: BencerGenerate, user_id: int):
     lc = LCRepo.get_by_id(db, payload.lc_id)
     vr = VehicleRegisterRepo.get_by_id(db, payload.vehicle_register_id)
     commcercial_invoice = CommercialInvoiceRepo.get_by_id(
@@ -57,6 +57,7 @@ def generate_bencer(db: Session, payload: BencerGenerate):
         db,
         payload.transaction_id,
         TransactionUpdate(status="pending", current_process="bencer"),
+        user_id=user_id,
     )
     return {"output_path": output_path}
 
@@ -69,5 +70,6 @@ def confirm_bencer(db: Session, payload: CreateBencer, user_id: int):
         TransactionUpdate(
             status="completed", current_process="bencer", bencer_id=bencer.id
         ),
+        user_id=user_id,
     )
     return bencer

@@ -85,7 +85,7 @@ def merge_dicts(a: dict, b: dict) -> dict:
     return result
 
 
-def extract_insurance(db: Session, file: UploadFile, transaction_id: int):
+def extract_insurance(db: Session, file: UploadFile, transaction_id: int, user_id: int):
     raw_text = extract_text_from_file(file)
     PROMPT1 = f"""
     USER INPUT
@@ -141,6 +141,7 @@ def extract_insurance(db: Session, file: UploadFile, transaction_id: int):
         db,
         int(transaction_id),
         TransactionUpdate(status="pending", current_process="insurance"),
+        user_id=user_id,
     )
     return final_result
 
@@ -188,7 +189,7 @@ def create_insurance(db: Session, payload: InsuranceCreate, user_id: int):
     return InsuranceRepo.create(db, payload, user_id)
 
 
-def confirm_insurance(db: Session, payload: InsuranceConfirm):
+def confirm_insurance(db: Session, payload: InsuranceConfirm, user_id: int):
     logging.info(payload.transaction_id)
     try:
         TransactionRepo.update(
@@ -199,6 +200,7 @@ def confirm_insurance(db: Session, payload: InsuranceConfirm):
                 current_process="insurance",
                 insurance_id=payload.insurance_id,
             ),
+            user_id=user_id,
         )
         return True
     except Exception as e:
@@ -206,7 +208,7 @@ def confirm_insurance(db: Session, payload: InsuranceConfirm):
         return False
 
 
-def reject_insurance(db: Session, payload: InsuranceConfirm):
+def reject_insurance(db: Session, payload: InsuranceConfirm, user_id: int):
     logging.info(payload.transaction_id)
     try:
         TransactionRepo.update(
@@ -217,6 +219,7 @@ def reject_insurance(db: Session, payload: InsuranceConfirm):
                 current_process="insurance",
                 insurance_id=payload.insurance_id,
             ),
+            user_id=user_id,
         )
         return True
     except Exception as e:

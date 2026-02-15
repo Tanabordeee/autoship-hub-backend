@@ -22,3 +22,6 @@ class User(Base):
     insurances = relationship("Insurance", back_populates="user")
     commercial_invoice = relationship("CommercialInvoice", back_populates="user")
     bencers = relationship("Bencer", back_populates="user")
+    transactions = relationship(
+        "Transaction", secondary="transaction_users", back_populates="users"
+    )

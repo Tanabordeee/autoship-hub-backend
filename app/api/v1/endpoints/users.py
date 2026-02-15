@@ -2,7 +2,12 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.api.deps import get_db
 from app.schemas.user import UserCreate, UserOut
-from app.services.user_service import create_user, get_all_approver
+from app.schemas.transaction import TransactionOut
+from app.services.user_service import (
+    create_user,
+    get_all_approver,
+    get_user_transactions,
+)
 from app.api.deps import get_current_user, RoleChecker
 from app.models.user import User
 
@@ -34,3 +39,10 @@ def read_users_approver(db: Session = Depends(get_db)):
 @router.get("/admin", dependencies=[Depends(RoleChecker(["admin"]))])
 def read_admin():
     return {"message": "Hello Admin"}
+
+
+@router.get("/me/transactions", response_model=list[TransactionOut])
+def read_user_transactions(
+    db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
+):
+    return get_user_transactions(db, current_user.id)

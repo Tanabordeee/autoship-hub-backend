@@ -11,9 +11,13 @@ router = APIRouter()
 
 
 @router.post("/generate-bencer")
-def generate_bencer_endpoint(payload: BencerGenerate, db: Session = Depends(get_db)):
+def generate_bencer_endpoint(
+    payload: BencerGenerate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     try:
-        result = generate_bencer(db, payload)
+        result = generate_bencer(db, payload, current_user.id)
         if result and "output_path" in result:
             output_path = result["output_path"]
             filename = output_path.split("\\")[-1]

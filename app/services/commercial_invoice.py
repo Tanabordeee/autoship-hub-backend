@@ -64,7 +64,7 @@ def parse_json_result(result_str: str):
         return lines
 
 
-def generate_commercial_invoice(payload: CommercialInvoice, db: Session):
+def generate_commercial_invoice(payload: CommercialInvoice, db: Session, user_id: int):
     pi = ProformaInvoiceRepo.get_by_id(db, payload.pi_id)
     lc = LCRepo.get_by_id(db, payload.lc_id)
     si = SI_Repository.get_by_id(db, payload.si_id)
@@ -247,6 +247,7 @@ Rules:
         db,
         payload.transaction_id,
         TransactionUpdate(status="pending", current_process="commercial_invoice"),
+        user_id=user_id,
     )
     return {"output_path": output_path}
 
@@ -263,5 +264,6 @@ def confirm_commercial_invoice(
             current_process="commercial_invoice",
             commercial_invoice_id=commcercial_invoice.id,
         ),
+        user_id=user_id,
     )
     return commcercial_invoice

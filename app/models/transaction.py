@@ -23,6 +23,9 @@ class Transaction(Base):
         "CommercialInvoice", back_populates="transactions"
     )
     insurance = relationship("Insurance", back_populates="transactions")
+    users = relationship(
+        "User", secondary="transaction_users", back_populates="transactions"
+    )
 
     proforma_invoices = relationship(
         "ProformaInvoice", back_populates="transaction", cascade="all, delete-orphan"

@@ -62,7 +62,9 @@ class ProformaInvoiceRepo:
 
     def create(db: Session, payload: CreateProformaInvoice, user_id: int):
         transaction = TransactionRepo.create(
-            db, TransactionCreate(status="pending", current_process="proforma_invoice")
+            db,
+            TransactionCreate(status="pending", current_process="proforma_invoice"),
+            user_id=user_id,
         )
         lines = [line.strip() for line in payload.consignee_name.splitlines()]
         customer = Customer(

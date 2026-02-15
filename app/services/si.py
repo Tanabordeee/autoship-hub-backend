@@ -18,7 +18,7 @@ import num2words
 logger = logging.getLogger(__name__)
 
 
-def create_si(db: Session, payload: SICreate):
+def create_si(db: Session, payload: SICreate, user_id: int):
     si = SI_Repository.create_si(db, payload)
     lc = LCRepo.get_by_id(db, payload.lc_id)
     booking = BookingRepo.get_by_id(db, payload.booking_id)
@@ -81,14 +81,16 @@ def create_si(db: Session, payload: SICreate):
         db,
         payload.transaction_id,
         TransactionUpdate(status="pending", current_process="si"),
+        user_id=user_id,
     )
     return {"output_path": output_path, "si_id": si.id}
 
 
-def confirm_si(db: Session, transaction_id: int, si_id: int):
+def confirm_si(db: Session, transaction_id: int, si_id: int, user_id: int):
     TransactionRepo.update(
         db,
         transaction_id,
         TransactionUpdate(status="completed", current_process="si", si_id=si_id),
+        user_id=user_id,
     )
     return True

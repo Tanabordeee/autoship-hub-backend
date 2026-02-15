@@ -31,7 +31,7 @@ def extract_single(text, pattern):
     return m.group(1).strip() if m else None
 
 
-def extract_bl(db: Session, file, transaction_id: str):
+def extract_bl(db: Session, file, transaction_id: str, user_id: int):
     text = extract_text_from_file(file)
     data = {}
     data["bl_number"] = extract_single(text, r"B/L Number\s*\n([A-Z0-9]+)")
@@ -95,29 +95,32 @@ def extract_bl(db: Session, file, transaction_id: str):
         db,
         int(transaction_id),
         TransactionUpdate(status="pending", current_process="bl"),
+        user_id=user_id,
     )
     data["text"] = text
     return data
 
 
-def confirm_bl(db: Session, transaction_id: int, bl_id: int):
+def confirm_bl(db: Session, transaction_id: int, bl_id: int, user_id: int):
     try:
         TransactionRepo.update(
             db,
             int(transaction_id),
             TransactionUpdate(status="confirm", current_process="bl", bl_id=bl_id),
+            user_id=user_id,
         )
     except Exception as e:
         print(e)
     return True
 
 
-def reject_bl(db: Session, transaction_id: int, bl_id: int):
+def reject_bl(db: Session, transaction_id: int, bl_id: int, user_id: int):
     try:
         TransactionRepo.update(
             db,
             int(transaction_id),
             TransactionUpdate(status="reject", current_process="bl", bl_id=bl_id),
+            user_id=user_id,
         )
         return True
     except Exception as e:

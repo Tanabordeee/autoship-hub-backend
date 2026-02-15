@@ -21,7 +21,7 @@ def extract_insurance_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    result = extract_insurance(db, file, transaction_id)
+    result = extract_insurance(db, file, transaction_id, current_user.id)
     return result
 
 
@@ -51,7 +51,7 @@ def confirm_insurance_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    result = confirm_insurance(db, payload)
+    result = confirm_insurance(db, payload, current_user.id)
     return result
 
 
@@ -61,5 +61,5 @@ def reject_insurance_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    result = reject_insurance(db, payload)
+    result = reject_insurance(db, payload, current_user.id)
     return result

@@ -11,7 +11,7 @@ from openpyxl.styles import Alignment, Font
 from openpyxl.utils import get_column_letter
 
 
-def extract_booking(db: Session, file, transaction_id: int):
+def extract_booking(db: Session, file, transaction_id: int, user_id: int):
     text = ""
     file.file.seek(0)
     with pdfplumber.open(file.file) as pdf:
@@ -75,6 +75,7 @@ def extract_booking(db: Session, file, transaction_id: int):
         db,
         transaction_id,
         TransactionUpdate(status="pending", current_process="booking"),
+        user_id=user_id,
     )
     return result
 
@@ -88,6 +89,7 @@ def create_booking(
         db,
         transaction_id,
         TransactionUpdate(status="completed", current_process="booking"),
+        user_id=user_id,
     )
     return {"id": booking.id}
 

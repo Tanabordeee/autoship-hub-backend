@@ -6,6 +6,9 @@ class UserRepository:
     def get_by_email(self, db: Session, email: str):
         return db.query(User).filter(User.email == email).first()
 
+    def get_by_id(self, db: Session, id: int):
+        return db.query(User).filter(User.id == id).first()
+
     def create(self, db: Session, email: str, password: str, role: str):
         user = User(email=email, password=password, role=role)
         db.add(user)

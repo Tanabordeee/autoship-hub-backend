@@ -17,3 +17,10 @@ def create_user(db: Session, user_email: str, user_password: str, user_role: str
 
 def get_all_approver(db: Session):
     return user_repo.get_all_approver(db)
+
+
+def get_user_transactions(db: Session, user_id: int):
+    user = user_repo.get_by_id(db, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user.transactions

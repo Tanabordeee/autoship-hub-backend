@@ -17,7 +17,7 @@ def extract_bv_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return extract_bv(db, file, transaction_id)
+    return extract_bv(db, file, transaction_id, current_user.id)
 
 
 @router.post("/create-bv", response_model=BVResponse)
@@ -35,7 +35,7 @@ def confirm_bv_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return confirm_bv(db, payload.transaction_id)
+    return confirm_bv(db, payload.transaction_id, current_user.id)
 
 
 @router.post("/reject-bv")
@@ -44,7 +44,7 @@ def reject_bv_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return reject_bv(db, payload.transaction_id)
+    return reject_bv(db, payload.transaction_id, current_user.id)
 
 
 @router.post("/check-bv")

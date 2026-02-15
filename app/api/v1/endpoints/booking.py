@@ -52,4 +52,4 @@ def extract_booking_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return extract_booking(db, file, transaction_id)
+    return extract_booking(db, file, transaction_id, current_user.id)

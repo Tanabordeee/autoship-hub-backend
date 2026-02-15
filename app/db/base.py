@@ -12,3 +12,4 @@ from app.models.bv import BV
 from app.models.insurance import Insurance
 from app.models.commercial_invoice import CommercialInvoice
 from app.models.bencer import Bencer
+from app.models.transaction_user import transaction_users

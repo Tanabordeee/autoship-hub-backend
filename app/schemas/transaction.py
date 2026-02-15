@@ -16,3 +16,18 @@ class TransactionUpdate(BaseModel):
     insurance_id: Optional[int] = None
     commercial_invoice_id: Optional[int] = None
     bencer_id: Optional[int] = None
+
+
+class TransactionOut(BaseModel):
+    id: int
+    status: str
+    current_process: str
+    lc_id: Optional[int] = None
+    si_id: Optional[int] = None
+    bl_id: Optional[int] = None
+    insurance_id: Optional[int] = None
+    commercial_invoice_id: Optional[int] = None
+    bencer_id: Optional[int] = None
+
+    class Config:
+        from_attributes = True

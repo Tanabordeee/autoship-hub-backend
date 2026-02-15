@@ -21,7 +21,7 @@ def generate_commercial_invoice_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    result = generate_commercial_invoice(payload, db)
+    result = generate_commercial_invoice(payload, db, current_user.id)
     if result and "output_path" in result:
         output_path = result["output_path"]
         filename = output_path.split("\\")[-1]

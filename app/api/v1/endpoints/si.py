@@ -17,7 +17,7 @@ def create_si_endpoint(
     payload: SICreate = Body(...),
     current_user: User = Depends(get_current_user),
 ):
-    result = create_si(db, payload)
+    result = create_si(db, payload, current_user.id)
     if result:
         filename = result["output_path"].split("\\")[-1]
         return FileResponse(
@@ -35,4 +35,4 @@ def confirm_si_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return confirm_si(db, payload.transaction_id, payload.si_id)
+    return confirm_si(db, payload.transaction_id, payload.si_id, current_user.id)
