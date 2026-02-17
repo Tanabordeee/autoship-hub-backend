@@ -35,4 +35,6 @@ def confirm_si_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return confirm_si(db, payload.transaction_id, payload.si_id, current_user.id)
+    return confirm_si(
+        db, payload.transaction_id, payload.si_id, current_user.id, payload.image_base64
+    )

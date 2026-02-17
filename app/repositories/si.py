@@ -22,3 +22,11 @@ class SI_Repository:
 
     def get_by_id(db: Session, id: int):
         return db.query(SI).filter(SI.id == id).first()
+
+    def update_si(db: Session, si_id: int, image_base64: str | None = None):
+        si = db.query(SI).filter(SI.id == si_id).first()
+        if si and image_base64:
+            si.image_base64 = image_base64
+            db.commit()
+            db.refresh(si)
+        return si

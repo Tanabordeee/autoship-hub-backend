@@ -13,6 +13,7 @@ class SI(Base):
     number_of_original_bs = Column(Text)
     no_of_packages = Column(Text)
     seal_no = Column(Text)
+    image_base64 = Column(Text, nullable=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     user = relationship("User", back_populates="si")
     transactions = relationship("Transaction", back_populates="si")

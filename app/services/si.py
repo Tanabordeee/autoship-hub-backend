@@ -88,7 +88,17 @@ def create_si(db: Session, payload: SICreate, user_id: int):
     return {"output_path": output_path, "si_id": si.id}
 
 
-def confirm_si(db: Session, transaction_id: int, si_id: int, user_id: int):
+def confirm_si(
+    db: Session,
+    transaction_id: int,
+    si_id: int,
+    user_id: int,
+    image_base64: str | None = None,
+):
+    # Update SI with image if provided
+    if image_base64:
+        SI_Repository.update_si(db, si_id, image_base64)
+
     TransactionRepo.update(
         db,
         transaction_id,

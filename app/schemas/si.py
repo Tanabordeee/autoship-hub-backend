@@ -21,3 +21,4 @@ class SICreate(BaseModel):
 class ConfirmSi(BaseModel):
     transaction_id: int
     si_id: int
+    image_base64: str | None = None
