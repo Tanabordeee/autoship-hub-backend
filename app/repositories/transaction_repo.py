@@ -4,6 +4,7 @@ from app.schemas.transaction import TransactionCreate
 from app.schemas.transaction import TransactionUpdate
 from app.models.user import User
 from app.services.audit_log_service import audit_log_service
+from sqlalchemy.orm import joinedload
 
 
 class TransactionRepo:
@@ -73,4 +74,8 @@ class TransactionRepo:
         return transaction
 
     def get_all(db: Session):
-        return db.query(Transaction).all()
+        return (
+            db.query(Transaction)
+            .options(joinedload(Transaction.proforma_invoice))
+            .all()
+        )

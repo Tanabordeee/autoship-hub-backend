@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from app.models.user import User
 
 
@@ -7,7 +7,16 @@ class UserRepository:
         return db.query(User).filter(User.email == email).first()
 
     def get_by_id(self, db: Session, id: int):
-        return db.query(User).filter(User.id == id).first()
+        from app.models.transaction import Transaction
+
+        return (
+            db.query(User)
+            .options(
+                joinedload(User.transactions).joinedload(Transaction.proforma_invoice)
+            )
+            .filter(User.id == id)
+            .first()
+        )
 
     def create(self, db: Session, email: str, password: str, role: str, name: str):
         user = User(email=email, password=password, role=role, name=name)

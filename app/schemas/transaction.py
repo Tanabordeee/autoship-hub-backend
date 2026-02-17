@@ -36,6 +36,7 @@ class TransactionOut(BaseModel):
     vehicle_register_id: Optional[int] = None
     bv_id: Optional[int] = None
     proforma_invoice_id: Optional[int] = None
+    pi_id: Optional[str] = None
 
     class Config:
         from_attributes = True

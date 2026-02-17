@@ -40,3 +40,9 @@ class Transaction(Base):
     )
     bv = relationship("BV", back_populates="transaction", uselist=False)
     audit_logs = relationship("AuditLog", back_populates="transaction")
+
+    @property
+    def pi_id(self):
+        if self.proforma_invoice:
+            return self.proforma_invoice.pi_id
+        return None
