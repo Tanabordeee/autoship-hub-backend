@@ -29,6 +29,7 @@ def get_user_transactions(db: Session, user_id: int):
     user = user_repo.get_by_id(db, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+
     return user.transactions
 
 
