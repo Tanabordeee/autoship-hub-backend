@@ -13,6 +13,7 @@ from app.api.v1.endpoints import commercial_invoice
 from app.api.v1.endpoints import bencer
 from app.api.v1.endpoints import transaction
 from app.api.v1.endpoints import analytics
+from app.api.v1.endpoints import boundingbox
 
 api_router = APIRouter()
 api_router.include_router(users.router, tags=["users"])
@@ -29,3 +30,4 @@ api_router.include_router(commercial_invoice.router, tags=["commercial_invoice"]
 api_router.include_router(bencer.router, tags=["bencer"])
 api_router.include_router(transaction.router, tags=["transaction"])
 api_router.include_router(analytics.router, tags=["analytics"])
+api_router.include_router(boundingbox.router, tags=["boundingbox"])
