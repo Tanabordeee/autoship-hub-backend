@@ -70,13 +70,23 @@ def extract_bl(db: Session, file, transaction_id: str, user_id: int):
     soup = BeautifulSoup(text, "html.parser")
     table = soup.find("table")
 
-    rows = table.find_all("tr")
-    headers = [td.get_text(strip=True) for td in rows[0].find_all("td")]
+    # Check if table exists before trying to access it
+    if table:
+        rows = table.find_all("tr")
+        if len(rows) > 1:  # Ensure we have at least header and one data row
+            headers = [td.get_text(strip=True) for td in rows[0].find_all("td")]
 
-    desc_idx = headers.index("Description of Packages and Goods")
-    data["description_of_good"] = (
-        rows[1].find_all("td")[desc_idx].get_text(" ", strip=True)
-    )
+            if "Description of Packages and Goods" in headers:
+                desc_idx = headers.index("Description of Packages and Goods")
+                data["description_of_good"] = (
+                    rows[1].find_all("td")[desc_idx].get_text(" ", strip=True)
+                )
+            else:
+                data["description_of_good"] = None
+        else:
+            data["description_of_good"] = None
+    else:
+        data["description_of_good"] = None
     container_match = re.search(
         r"([A-Z]{4}\d{7})\/(\d{6,})\/([0-9]{2}'(?:HQ|GP|RF))", text
     )
