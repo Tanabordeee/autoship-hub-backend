@@ -9,14 +9,18 @@ import app.db.base
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Autoship Hub API")
 
-origins = ["http://localhost:8080"]
+origins = [
+    "http://localhost:8080",
+    "http://localhost:3000",
+    "https://8e74-2001-fb1-b-505f-2421-95d3-b380-cd84.ngrok-free.app",
+]
 
 app.add_middleware(
     CORSMiddleware,

@@ -70,21 +70,42 @@ def clean_45a_text(text: str) -> str:
     return text
 
 
-def extract_swift_field(full_text: str, field_tag: str):
+def extract_swift_field(full_text: str):
     """
     Extract a SWIFT MT700 field block using regex.
     Example: field_tag = "46A"
     """
     # Robust regex for SWIFT fields like :46A: or : 46A:
-    pattern = rf":\s*{field_tag}\s*:?(.*?)(?=\n\s*:\s*\d{2}[A-Z]?:|\Z)"
+    pattern = rf"\s:?\s*46A\s*:\s*(.*?)(?=\s:\s*\d{2}[A-Z]?)"
 
     match = re.search(pattern, full_text, re.DOTALL | re.IGNORECASE)
 
     if match:
         content = match.group(1).strip()
-        # Remove common OCR/page header noise
-        return clean_text_common(content)
+        print("DEBUG: extract_swift_field match FOUND")
+        return content
 
+    print("DEBUG: extract_swift_field regex match NOT FOUND. Trying fallback...")
+
+    # Fallback: check if starts with '46A' or ':46A:' or try .find
+    start_index = full_text.find("46A")
+
+    if start_index != -1:
+        print(f"DEBUG: extract_swift_field fallback FOUND at index {start_index}")
+        # Extract from the found index onwards
+        content = full_text[start_index:]
+        # Remove the tag itself validly
+        # Identify if it was :46A: or 46A
+        if content.startswith(":46A:"):
+            content = content[5:].strip()
+        elif content.startswith("46A:"):
+            content = content[4:].strip()
+        elif content.startswith("46A"):
+            content = content[3:].strip()
+
+        return content
+
+    print("DEBUG: extract_swift_field match NOT FOUND")
     return None
 
 
@@ -167,9 +188,11 @@ Rules:
 
 
 def extract_document_require_46A(full_text: str):
+    print("DEBUG: Inside extract_document_require_46A")
     items = []
-    text = extract_swift_field(full_text, "46A")
-
+    text = extract_swift_field(full_text)
+    print(f"DEBUG: extract_swift_field result: {text[:100] if text else 'None'}")
+    print("46A : ", text)
     items.append(
         {"item_no": 1, "doc_type": "INVOICE", "conditions": call_gemma("INVOICE", text)}
     )

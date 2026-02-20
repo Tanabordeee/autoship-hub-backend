@@ -62,14 +62,13 @@ def generate_excel(db: Session, id: int, transaction_id: int, user_id: int) -> s
     ws_goods.append(["Item No", "Description"])
     ws_goods["A1"].font = ws_goods["B1"].font = Font(bold=True)
 
-    goods = lc.description_of_good_45a_45b or {}
-    for item in goods.get("items", []):
-        ws_goods.append(
-            [
-                item.get("item_no"),
-                item.get("description"),
-            ]
-        )
+    goods = lc.description_of_good_45a_45b or []
+    goods_items = goods if isinstance(goods, list) else goods.get("items", [])
+    for item in goods_items:
+        if isinstance(item, dict):
+            ws_goods.append([item.get("item_no"), item.get("description")])
+        else:
+            ws_goods.append(["", str(item)])
 
     for row in ws_goods.iter_rows(min_row=2, max_col=2):
         row[1].alignment = Alignment(wrap_text=True, vertical="top")
@@ -86,15 +85,15 @@ def generate_excel(db: Session, id: int, transaction_id: int, user_id: int) -> s
     for col in range(1, 4):
         ws_docs.cell(row=1, column=col).font = Font(bold=True)
 
-    docs = lc.document_require_46a or {}
-    for item in docs.get("items", []):
-        ws_docs.append(
-            [
-                item.get("item_no"),
-                item.get("doc_type"),
-                item.get("conditions"),
-            ]
-        )
+    docs = lc.document_require_46a or []
+    docs_items = docs if isinstance(docs, list) else docs.get("items", [])
+    for item in docs_items:
+        if isinstance(item, dict):
+            ws_docs.append(
+                [item.get("item_no"), item.get("doc_type"), item.get("conditions")]
+            )
+        else:
+            ws_docs.append(["", "", str(item)])
 
     for row in ws_docs.iter_rows(min_row=2, max_col=3):
         row[2].alignment = Alignment(wrap_text=True, vertical="top")

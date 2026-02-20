@@ -13,6 +13,11 @@ from app.services.ocr_service import ocr_image
 from .parser import clean_text_common, clean_45a_text, extract_document_require_46A
 from app.repositories.proforma_invoice_repo import ProformaInvoiceRepo
 from app.services.audit_log_service import audit_log_service
+import ollama
+import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def create_lc(db: Session, payload: LCCreate, user_id: int, pi_id: list[int]):
@@ -49,6 +54,82 @@ def create_lc(db: Session, payload: LCCreate, user_id: int, pi_id: list[int]):
     return lc
 
 
+schema = {
+    "type": "array",
+    "items": {
+        "type": "object",
+        "properties": {
+            "item_no": {"type": "integer"},
+            "description": {"type": ["string", "null"]},
+        },
+        "required": ["item_no", "description"],
+    },
+}
+
+
+def call_qwen(prompt: str):
+    response = ollama.chat(
+        model="qwen2.5:7b-instruct",
+        messages=[
+            {
+                "role": "user",
+                "content": f"""
+            คุณเป็นผู้ช่วยดึงข้อมูลจาก Letter of Credit (LC) field 45A: DESCRIPTION OF GOODS AND/OR SERVICES
+นี่คือเนื้อหา 45A:
+{prompt}
+คำสั่ง:
+1. ดึงรายการสินค้า/รถแต่ละรายการออกมาเป็น JSON
+2. แต่ละ item ต้องมี fields:
+- item_no: เลขลำดับรายการ (เช่น 1, 2, 3…)
+- description: รายละเอียดของรถ
+3. ถ้า field ไหนไม่มี ให้ใช้ค่า null
+4. คืนค่าผลลัพธ์เป็น JSON ล้วน ไม่ต้องมีข้อความอื่น
+5. ลำดับ item ต้องตรงตามที่ปรากฏใน text
+
+ตัวอย่าง output:
+[
+{{
+"item_no": 1,
+"description": "1) ONE UNIT OF USED HONDA CITY 1.0RS VTEC TURBO AUTO
+YEAR OF MANUFACTURE: 2025
+CHASSIS: MRHGN1680ST102773 WLT018
+H.S. CODE: 8703.21.69
+UNIT PRICE: USD 13,500",
+}},
+{{
+"item_no": 2,
+"description": "2) ONE UNIT OF USED HONDA CITY 1.0RS VTEC TURBO AUTO\nYEAR OF MANUFACTURE: 2025\nCHASSIS: MRHGN1680ST102248 WLT019\nH.S. CODE: 8703.21.69 UNIT PRICE: USD 13,500",
+}},
+]     
+            """,
+            },
+        ],
+        options={"temperature": 0},
+        format=schema,
+    )
+    content = response["message"]["content"]
+    return content
+
+
+#     review_prompt = f"""
+# นี่คือ JSON ที่คุณดึงมา:
+# {content}
+
+# ORIGINAL DATA
+# {prompt}
+# ตรวจสอบว่าครบทุก item, ลำดับถูกต้อง, มี H.S. CODE ทุก item
+# ถ้ามี missing ให้เติม null
+# ส่ง JSON array ใหม่
+# """
+#     review_response = ollama.chat(
+#         model="qwen2.5:7b-instruct",
+#         messages=[{"role": "user", "content": review_prompt}],
+#         options={"temperature": 0},
+#     )
+
+#     return review_response["message"]["content"]
+
+
 def extract_lc(db: Session, file: UploadFile, user_id: int, transaction_id: int):
     """
     Extract LC data from PDF file and return as JSON
@@ -75,7 +156,6 @@ def extract_lc(db: Session, file: UploadFile, user_id: int, transaction_id: int)
 
     # Combine all text
     full_text = "\n\n".join(f"[Page {r['page']}]\n{r['text']}" for r in results)
-
     # Extract all fields using regex
     extracted_data = {
         "sequence_of_total_27": re.search(
@@ -171,34 +251,109 @@ def extract_lc(db: Session, file: UploadFile, user_id: int, transaction_id: int)
             full_text,
             re.DOTALL | re.IGNORECASE,
         ),
+        "number_of_amendment_26e": re.search(
+            r"NUMBER\s*OF\s*AMENDMENT\s*(.+?)(?=\s*:|$)",
+            full_text,
+            re.DOTALL | re.IGNORECASE,
+        ),
+        "date_of_amendment_30": re.search(
+            r"DATE\s*OF\s*AMENDMENT\s*(.+?)(?=\s*:|$)",
+            full_text,
+            re.DOTALL | re.IGNORECASE,
+        ),
+        "applicant_bank_51d": re.search(
+            r"51D\s*:\s*APPLICANT\s*BANK\s*(.+?)(?=\s*:|$)",
+            full_text,
+            re.DOTALL | re.IGNORECASE,
+        ),
+        "drafts_at_42c": re.search(
+            r"42C\s*:\s*DRAFTS\s*AT\s*(.+?)(?=\s*:|$)",
+            full_text,
+            re.DOTALL | re.IGNORECASE,
+        ),
+        "drawee_42a": re.search(
+            r"42A\s*:\s*DRAWEE\s*(.+?)(?=\s*:|$)",
+            full_text,
+            re.DOTALL | re.IGNORECASE,
+        ),
+        "sender_reference_20": re.search(
+            r":20:\s*(.*?)\s*(?=\n:\d{2}[A-Z]?:|\Z)",
+            full_text,
+            re.DOTALL | re.IGNORECASE,
+        ),
+        "receiver_reference_21": re.search(
+            r":21:\s*(.*?)\s*(?=\n:\d{2}[A-Z]?:|\Z)",
+            full_text,
+            re.DOTALL | re.IGNORECASE,
+        ),
+        "issuing_bank_reference_23": re.search(
+            r":23:\s*(.*?)\s*(?=\n:\d{2}[A-Z]?:|\Z)",
+            full_text,
+            re.DOTALL | re.IGNORECASE,
+        ),
+        "issuing_bank_52a": re.search(
+            r":52A:\s*(.*?)\s*(?=\n:\d{2}[A-Z]?:|\Z)",
+            full_text,
+            re.DOTALL | re.IGNORECASE,
+        ),
+        "purpose_of_message_22a": re.search(
+            r":22A:\s*(.*?)\s*(?=\n:\d{2}[A-Z]?:|\Z)",
+            full_text,
+            re.DOTALL | re.IGNORECASE,
+        ),
+        "additional_conditions_47b": re.search(
+            r":47B:\s*(.*?)\s*(?=\n:\d{2}[A-Z]?:|\Z)",
+            full_text,
+            re.DOTALL | re.IGNORECASE,
+        ),
     }
-
-    # Extract description of goods
-    description_match = re.search(
-        r"45A\s*:\s*DESCRIPTION\s*OF\s*GOODS\s*AND/OR\s*SERVICES\s*(.+?)(?=\s*\n?\s*\d{2}[A-Z]?\s*:|$)",
-        full_text,
-        re.DOTALL | re.IGNORECASE,
-    )
-
+    result_text = ""
+    match_45B = re.search(r"45B", full_text)
+    logger.debug(f"[LC] Match 45B : {match_45B}")
+    if match_45B:
+        start_idx = match_45B.start()
+        hs_matches = list(re.finditer(r"H\.S\.", full_text))
+        last_hs = hs_matches[-1].end()  # เอา index หลัง H.S. ตัวสุด
+        end_idx = min(
+            last_hs + 30, len(full_text)
+        )  # +30 ตัวอักษร และไม่เกินความยาว string # 3. ดึง substring
+        result_text = full_text[start_idx:end_idx]
+    else:
+        match_45A = re.search(r"\s*45\s*A[:\)]?", full_text)
+        if match_45A:
+            start_idx = match_45A.start()
+            hs_matches = list(re.finditer(r"H\.S\.", full_text))
+            last_hs = hs_matches[-1].end()  # เอา index หลัง H.S. ตัวสุด
+            end_idx = min(
+                last_hs + 30, len(full_text)
+            )  # +30 ตัวอักษร และไม่เกินความยาว string # 3. ดึง substring
+            result_text = full_text[start_idx:end_idx]
+    logger.debug(f"[LC] Result text : {result_text}")
+    logger.debug(f"[LC] Full text preview : {full_text}")
     # Build description_of_good_45a_45b as JSON with items
     description_of_good_45a_45b = None
-    if description_match:
-        raw_description_text = description_match.group(1).strip()
-        description_text = clean_45a_text(raw_description_text)
-        # Extract individual items (UNIT)
-        items = re.split(
-            r"(?=\b\d{1,2}\s+UNIT\b)", description_text, flags=re.IGNORECASE
-        )
-        items = [i.strip() for i in items if i.strip()]
-        description_of_good_45a_45b = {
-            "full_text": description_text,
-            "items": [
-                {"item_no": idx + 1, "description": item.strip()}
-                for idx, item in enumerate(items)
-            ]
-            if items
-            else [],
-        }
+    llm_output = call_qwen(result_text)
+    # ดึงเฉพาะ JSON array
+    match = re.search(r"\[.*\]", llm_output, re.DOTALL)
+    # logger.debug(f"[LC] LLM output : {llm_output}")
+    # logger.debug(f"[LC] Match : {match}")
+    if match:
+        json_text = match.group(0)
+        try:
+            description_of_good_45a_45b = json.loads(json_text)
+            allowed_keys = {"item_no", "description"}
+            for item in description_of_good_45a_45b:
+                keys_to_remove = set(item.keys()) - allowed_keys
+                for k in keys_to_remove:
+                    item.pop(k)
+        except Exception as e:
+            print("JSON PARSE ERROR:", e)
+            print(json_text)
+            description_of_good_45a_45b = None
+    else:
+        print("NO JSON FOUND")
+        print(llm_output)
+        description_of_good_45a_45b = None
     document_require_46a = extract_document_require_46A(full_text)
     # Build response JSON
     response_data = {
@@ -296,6 +451,44 @@ def extract_lc(db: Session, file: UploadFile, user_id: int, transaction_id: int)
         .group(1)
         .strip()
         if extracted_data["instructions_to_the_paying_accepting_negotiating_bank_78"]
+        else None,
+        "number_of_amendment_26e": extracted_data["number_of_amendment_26e"]
+        .group(1)
+        .strip()
+        if extracted_data["number_of_amendment_26e"]
+        else None,
+        "date_of_amendment_30": extracted_data["date_of_amendment_30"].group(1).strip()
+        if extracted_data["date_of_amendment_30"]
+        else None,
+        "applicant_bank_51d": extracted_data["applicant_bank_51d"].group(1).strip()
+        if extracted_data["applicant_bank_51d"]
+        else None,
+        "drafts_at_42c": extracted_data["drafts_at_42c"].group(1).strip()
+        if extracted_data["drafts_at_42c"]
+        else None,
+        "drawee_42a": extracted_data["drawee_42a"].group(1).strip()
+        if extracted_data["drawee_42a"]
+        else None,
+        "sender_reference_20": extracted_data["sender_reference_20"].group(1).strip()
+        if extracted_data["sender_reference_20"]
+        else None,
+        "receiver_reference_21": extracted_data["receiver_reference_21"]
+        .group(1)
+        .strip()
+        if extracted_data["receiver_reference_21"]
+        else None,
+        "issuing_bank_52a": extracted_data["issuing_bank_52a"].group(1).strip()
+        if extracted_data["issuing_bank_52a"]
+        else None,
+        "purpose_of_message_22a": extracted_data["purpose_of_message_22a"]
+        .group(1)
+        .strip()
+        if extracted_data["purpose_of_message_22a"]
+        else None,
+        "additional_conditions_47b": extracted_data["additional_conditions_47b"]
+        .group(1)
+        .strip()
+        if extracted_data["additional_conditions_47b"]
         else None,
         "pdf_path": file_path,
         "text": full_text,
