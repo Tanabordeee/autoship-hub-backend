@@ -312,7 +312,7 @@ def extract_lc(db: Session, file: UploadFile, user_id: int, transaction_id: int)
     logger.debug(f"[LC] Match 45B : {match_45B}")
     if match_45B:
         start_idx = match_45B.start()
-        hs_matches = list(re.finditer(r"H\.S\.", full_text))
+        hs_matches = list(re.finditer(r"\bH\.?\s*S\.?\b", full_text, re.IGNORECASE))
         last_hs = hs_matches[-1].end()  # เอา index หลัง H.S. ตัวสุด
         end_idx = min(
             last_hs + 30, len(full_text)
@@ -322,7 +322,7 @@ def extract_lc(db: Session, file: UploadFile, user_id: int, transaction_id: int)
         match_45A = re.search(r"\s*45\s*A[:\)]?", full_text)
         if match_45A:
             start_idx = match_45A.start()
-            hs_matches = list(re.finditer(r"H\.S\.", full_text))
+            hs_matches = list(re.finditer(r"\bH\.?\s*S\.?\b", full_text, re.IGNORECASE))
             last_hs = hs_matches[-1].end()  # เอา index หลัง H.S. ตัวสุด
             end_idx = min(
                 last_hs + 30, len(full_text)
@@ -501,3 +501,6 @@ def extract_lc(db: Session, file: UploadFile, user_id: int, transaction_id: int)
     )
     audit_log_service.log_action(db, "extract", "lc", user_id, transaction_id)
     return response_data
+
+def get_lc_by_id(db : Session , id : int):
+    return LCRepo.get_all_versions_by_id(db , id)
