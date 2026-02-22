@@ -88,6 +88,20 @@ class LCRepo:
     def get_by_id(db: Session, id: int):
         return db.query(LC).filter(LC.id == id).first()
 
+    def get_all_versions_by_id(db: Session, id: int):
+        """Get all versions of an LC by the lc_no of the given id, sorted by versions descending"""
+        # หา LC ตัวแรกจาก id
+        lc = db.query(LC).filter(LC.id == id).first()
+        if not lc:
+            return []
+
+        # หา LC ทั้งหมดที่มี lc_no เดียวกัน
+        return (
+            db.query(LC)
+            .filter(LC.lc_no == lc.lc_no)
+            .order_by(LC.versions.desc())  # sort จากมากไปน้อย
+            .all()
+        )
     def get_all_lc_no(db: Session):
         results = db.query(LC.lc_no).distinct().all()
         return [r[0] for r in results]

@@ -289,3 +289,6 @@ def get_check_bv(db: Session, chassis: str):
         "date_of_registration": vr.date_of_registration if vr else None,
         "lc_no": lc_no,
     }
+
+def get_bv_by_id(db : Session , id : int):
+    return BVRepository.get_all_versions_by_id(db , id)

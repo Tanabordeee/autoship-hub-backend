@@ -4,8 +4,8 @@ from app.api.deps import get_db
 from app.services.bv import extract_bv
 from app.api.deps import get_current_user
 from app.models.user import User
-from app.schemas.bv import BVCreate, BVCheck, ConfirmAndRejectBV, BVResponse
-from app.services.bv import create_bv, confirm_bv, reject_bv, get_check_bv
+from app.schemas.bv import BVCreate, BVCheck, ConfirmAndRejectBV, BVResponse , BV_id
+from app.services.bv import create_bv, confirm_bv, reject_bv, get_check_bv , get_bv_by_id
 
 router = APIRouter()
 
@@ -54,3 +54,8 @@ def check_bv_endpoint(
     current_user: User = Depends(get_current_user),
 ):
     return get_check_bv(db, payload.chassis)
+
+@router.post("/bv-all-version")
+def get_all_bv_versions(payload: BV_id, db: Session = Depends(get_db),
+                        current_user: User = Depends(get_current_user)):
+    return get_bv_by_id(db, payload.id)

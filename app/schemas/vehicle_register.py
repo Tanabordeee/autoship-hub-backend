@@ -25,3 +25,6 @@ class VehicleRegisterCreate(BaseModel):
 
 class VehicleRegisterCreateResponse(BaseModel):
     id: int
+
+class VehicleRegisterID(BaseModel):
+    id : int

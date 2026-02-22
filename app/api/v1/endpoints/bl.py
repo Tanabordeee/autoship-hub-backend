@@ -5,11 +5,12 @@ from app.api.deps import get_current_user
 from app.models.user import User
 from app.services.bl import extract_bl, get_check_data
 from app.schemas.bl import BLCheck
-from app.services.bl import create_bl, confirm_bl, reject_bl
+from app.services.bl import create_bl, confirm_bl, reject_bl , get_bl_by_id
 from app.schemas.bl import (
     BLCreate,
     TransactionStatusUpdateConfirm,
     TransactionStatusUpdateReject,
+    BL_id
 )
 
 router = APIRouter()
@@ -60,3 +61,9 @@ def reject_bl_endpoint(
     current_user: User = Depends(get_current_user),
 ):
     return reject_bl(db, payload.transaction_id, current_user.id)
+
+
+@router.post("/bl-all-version")
+def get_all_bl_versions(payload: BL_id, db: Session = Depends(get_db),
+                        current_user: User = Depends(get_current_user)):
+    return get_bl_by_id(db, payload.id)

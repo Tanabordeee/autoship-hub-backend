@@ -41,3 +41,6 @@ class TransactionStatusUpdateConfirm(BaseModel):
 class TransactionStatusUpdateReject(BaseModel):
     transaction_id: int
     bl_id: int
+
+class BL_id(BaseModel):
+    id : int

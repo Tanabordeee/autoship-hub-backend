@@ -52,3 +52,5 @@ class LC(LCBase):
 
     class Config:
         from_attributes = True
+class LC_id(LCBase):
+    id : int

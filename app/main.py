@@ -19,11 +19,12 @@ app = FastAPI(title="Autoship Hub API")
 origins = [
     "http://localhost:8080",
     "http://localhost:3000",
-    "https://8e74-2001-fb1-b-505f-2421-95d3-b380-cd84.ngrok-free.app",
+    "https://6850-171-98-132-247.ngrok-free.app",
 ]
 
 app.add_middleware(
     CORSMiddleware,
+    allow_origin_regex="https://.*.ngrok-free.app",
     allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],

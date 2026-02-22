@@ -71,3 +71,5 @@ class Booking(BaseModel):
 
     class Config:
         from_attributes = True
+class Booking_ID(BaseModel):
+    id : int

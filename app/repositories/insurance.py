@@ -38,3 +38,17 @@ class InsuranceRepo:
             .order_by(Insurance.version_insurance.desc())
             .first()
         )
+
+    def get_all_versions_by_id(db : Session , id : int):
+        """Get all versions of an LC by the lc_no of the given id, sorted by versions descending"""
+        insurance = db.query(Insurance).filter(Insurance.id == id).first()
+        if not insurance:
+            return []
+
+        # หา LC ทั้งหมดที่มี lc_no เดียวกัน
+        return (
+            db.query(Insurance)
+            .filter(Insurance.certificate_no == insurance.certificate_no)
+            .order_by(Insurance.version_insurance.desc())  # sort จากมากไปน้อย
+            .all()
+        )

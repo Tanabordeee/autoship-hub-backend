@@ -265,3 +265,6 @@ def create_booking_excel(db: Session, id: int, transaction_id: int, user_id: int
     wb.save(file_path)
     audit_log_service.log_action(db, "export", "booking", user_id, transaction_id)
     return file_path
+
+def get_booking_by_id(db : Session , id : int):
+    return BookingRepo.get_by_id(db , id)

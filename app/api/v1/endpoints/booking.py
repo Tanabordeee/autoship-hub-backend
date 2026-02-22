@@ -3,7 +3,7 @@ from app.api.deps import get_db
 from fastapi.responses import FileResponse
 
 # from app.services.booking_service import create_booking
-from app.services.booking.service import extract_booking
+from app.services.booking.service import extract_booking , get_booking_by_id
 
 # from app.schemas.booking import CreateBooking
 from sqlalchemy.orm import Session
@@ -11,7 +11,7 @@ from app.api.deps import get_current_user
 from app.models.user import User
 from app.schemas.booking import CreateBooking
 from app.services.booking.service import create_booking
-from app.schemas.booking import BookingCreateResponse
+from app.schemas.booking import BookingCreateResponse , Booking_ID
 from app.services.booking.service import create_booking_excel
 
 router = APIRouter()
@@ -54,3 +54,11 @@ def extract_booking_endpoint(
     current_user: User = Depends(get_current_user),
 ):
     return extract_booking(db, file, transaction_id, current_user.id)
+
+@router.post("/get-booking")
+def get_booking_by_id_endpoint(
+    payload:Booking_ID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return get_booking_by_id(db , payload.id)

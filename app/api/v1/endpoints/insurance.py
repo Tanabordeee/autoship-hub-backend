@@ -8,8 +8,9 @@ from app.services.insurance import (
     create_insurance,
     confirm_insurance,
     reject_insurance,
+    get_insurance_by_id
 )
-from app.schemas.insurance import InsuranceCheck, InsuranceCreate, InsuranceConfirm
+from app.schemas.insurance import InsuranceCheck, InsuranceCreate, InsuranceConfirm , Insurance_id
 
 router = APIRouter()
 
@@ -63,3 +64,8 @@ def reject_insurance_endpoint(
 ):
     result = reject_insurance(db, payload, current_user.id)
     return result
+
+@router.post("/insurance-all-version")
+def get_all_bv_versions(payload: Insurance_id, db: Session = Depends(get_db),
+                        current_user: User = Depends(get_current_user)):
+    return get_insurance_by_id(db, payload.id)

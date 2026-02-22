@@ -47,3 +47,6 @@ class ConfirmAndRejectBV(BaseModel):
 
 class BVResponse(BVBase):
     id: int
+
+class BV_id(BaseModel):
+    id : int

@@ -135,3 +135,6 @@ def create_vehicle_register_excel(
         db, "export", "vehicle_register", user_id, transaction_id
     )
     return file_path
+
+def get_vehicle_register_by_id(db : Session , id : int):
+    return VehicleRegisterRepo.get_by_id(db , id)

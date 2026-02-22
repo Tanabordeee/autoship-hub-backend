@@ -52,3 +52,18 @@ class BVRepository:
     @staticmethod
     def get_by_id(db: Session, id: int):
         return db.query(BV).filter(BV.id == id).first()
+
+    @staticmethod
+    def get_all_versions_by_id(db : Session , id : int):
+        """Get all versions of an LC by the lc_no of the given id, sorted by versions descending"""
+        bv = db.query(BV).filter(BV.id == id).first()
+        if not bv:
+            return []
+
+        # หา LC ทั้งหมดที่มี lc_no เดียวกัน
+        return (
+            db.query(BV)
+            .filter(BV.bv_ref_no == bv.bv_ref_no)
+            .order_by(BV.version_bv.desc())  # sort จากมากไปน้อย
+            .all()
+        )

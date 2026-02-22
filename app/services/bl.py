@@ -191,3 +191,6 @@ def create_bl(db: Session, payload: BLCreate):
         # First version
         payload.version_bl = 1
     return BLRepository.create(db, payload)
+    
+def get_bl_by_id(db : Session , id : int):
+    return BLRepository.get_all_versions_by_id(db , id)

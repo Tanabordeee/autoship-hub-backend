@@ -233,3 +233,5 @@ def reject_insurance(db: Session, payload: InsuranceConfirm, user_id: int):
     except Exception as e:
         print(e)
         return False
+def get_insurance_by_id(db : Session , id : int):
+    return InsuranceRepo.get_all_versions_by_id(db , id)

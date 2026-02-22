@@ -33,3 +33,5 @@ class InsuranceCreate(BaseModel):
 class InsuranceConfirm(BaseModel):
     insurance_id: int
     transaction_id: int
+class Insurance_id(BaseModel):
+    id : int

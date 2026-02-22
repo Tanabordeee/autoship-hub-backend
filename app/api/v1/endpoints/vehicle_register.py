@@ -8,12 +8,13 @@ from app.services.vehicle_register import (
     extract_vehicle_register,
     create_vehicle_register,
     create_vehicle_register_excel,
+    get_vehicle_register_by_id
 )
 from app.schemas.vehicle_register import (
     VehicleRegisterCreate,
     VehicleRegisterCreateResponse,
+    VehicleRegisterID
 )
-
 router = APIRouter()
 
 
@@ -49,3 +50,11 @@ def create_vehicle_register_excel_endpoint(
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         filename=f"vehicle_register_{id}.xlsx",
     )
+
+@router.post("/get-vehicle-register")
+def get_vehicle_register_by_id_endpoint(
+    payload : VehicleRegisterID,
+        db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return get_vehicle_register_by_id(db , payload.id)

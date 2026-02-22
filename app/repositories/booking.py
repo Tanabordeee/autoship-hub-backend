@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from app.models import booking
 from app.models.booking import Booking
 from app.schemas.booking import CreateBooking
 

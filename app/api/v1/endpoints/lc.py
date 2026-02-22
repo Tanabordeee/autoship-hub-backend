@@ -7,8 +7,9 @@ from app.models.user import User
 from app.schemas.lc import LCCreate, LC
 from app.services.lc import create_lc
 from app.services.lc import generate_excel
+from app.services.lc import get_lc_by_id
 from fastapi.responses import FileResponse
-
+from app.schemas.lc import LC_id
 router = APIRouter()
 
 
@@ -49,3 +50,8 @@ def generate_excel_endpoint(
         filename=f"LC_{id}.xlsx",
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
+
+@router.post("/lc-all-version")
+def get_all_lc_versions(payload: LC_id, db: Session = Depends(get_db),
+                        current_user: User = Depends(get_current_user)):
+    return get_lc_by_id(db, payload.id)
