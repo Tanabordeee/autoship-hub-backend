@@ -262,12 +262,19 @@
                 </tr>
 
                 {% set sorted_items = invoice.items|sort(attribute='item_no') %}
+                {% set car_count = (sorted_items|length // 6) %}
+                {% set item_counter = 1 %}
+
                 {% for base in range(0, sorted_items|length, 6) %}
                 {% set group = sorted_items %}
 
                 <tr class="no-border-row">
                     <td>
-                        <div class="grid-desc">{{ base + 1 }}</div>
+                        <div class="grid-desc">{% if car_count > 1 %}
+                            {{ loop.index }}
+                            {% else %}
+                            {{ base + 1 }}
+                            {% endif %}</div>
                         <div class="grid-content whitespace-pre-wrap break-words">{{ group[base].description if
                             group[base] is defined else "" }}</div>
                     </td>
@@ -280,7 +287,11 @@
                 </tr>
                 <tr class="no-border-row">
                     <td>
+                        {% if car_count == 1 %}
                         <div class="grid-desc">{{ base + 2 }}</div>
+                        {% else %}
+                        <div class="grid-desc"> </div>
+                        {% endif %}
                         <div class="grid-content">
                             <span>YEAR OF MANUFACTURE : </span><span>{{ group[base + 1].description if group[base+1] is
                                 defined else "" }}</span>
@@ -292,7 +303,11 @@
                 </tr>
                 <tr class="no-border-row">
                     <td>
+                        {% if car_count == 1 %}
                         <div class="grid-desc">{{ base + 3 }}</div>
+                        {% else %}
+                        <div class="grid-desc"> </div>
+                        {% endif %}
                         <div class="grid-content">
                             <span>CHASSIS : </span><span>{{ group[base + 2].description if group[base+2] is defined else
                                 "" }}</span>
@@ -304,7 +319,11 @@
                 </tr>
                 <tr class="no-border-row">
                     <td>
+                        {% if car_count == 1 %}
                         <div class="grid-desc">{{ base + 4 }}</div>
+                        {% else %}
+                        <div class="grid-desc"> </div>
+                        {% endif %}
                         <div class="grid-content">FREIGHT</div>
                     </td>
                     <td class="text-center">{{ "{:,.2f}".format(group[base + 4].unit_price) if group[base+4] is defined
@@ -316,7 +335,11 @@
                 </tr>
                 <tr class="no-border-row">
                     <td>
+                        {% if car_count == 1 %}
                         <div class="grid-desc">{{ base + 5 }}</div>
+                        {% else %}
+                        <div class="grid-desc"> </div>
+                        {% endif %}
                         <div class="grid-content">INSURANCE</div>
                     </td>
                     <td class="text-center">{{ "{:,.2f}".format(group[base + 5].unit_price) if group[base+5] is defined
@@ -328,7 +351,11 @@
                 </tr>
                 <tr class="no-border-row">
                     <td>
+                        {% if car_count == 1 %}
                         <div class="grid-desc">{{ base + 6 }}</div>
+                        {% else %}
+                        <div class="grid-desc"> </div>
+                        {% endif %}
                         <div class="grid-content">H.S. CODE : {{ group[base + 3].description if group[base + 3] is
                             defined else "" }}</div>
                     </td>
@@ -337,6 +364,7 @@
                     <td class="text-center"></td>
                     <td class="text-center"></td>
                 </tr>
+                {% set item_counter = item_counter + 1 %}
                 {% endfor %}
 
 
