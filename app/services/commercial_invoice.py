@@ -165,8 +165,13 @@ Rules:
 - No explanation
 """,
             )
-
-    desc_items = (lc.description_of_good_45a_45b or {}).get("items", [])
+    desc_raw = lc.description_of_good_45a_45b or []
+    if isinstance(desc_raw, dict):
+        desc_items = desc_raw.get("items", [])
+    elif isinstance(desc_raw, list):
+        desc_items = desc_raw
+    else:
+        desc_items = []
     desc_text = desc_items[0].get("description", "") if desc_items else ""
     description = desc_text + (bv.engine_no if bv and bv.engine_no else "")
     freight_charge = 0
