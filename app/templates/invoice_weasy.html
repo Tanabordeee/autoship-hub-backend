@@ -194,6 +194,14 @@
 
 <body>
     <div class="container">
+        <div class="flex">
+            <img src="{{ logo_path|default('logopap.png') }}" alt="" style="width: 10%;" />
+            <div class="flex flex-col">
+                <p class="mt-5 font-bold" style="font-size: 10px;">PAP Prosperity Co Ltd 28, Soi Petchkasem 36,
+                    Pakkhlong
+                    Paseecharoen Paseecharoen,Bangkok, Thailand 10160</p>
+            </div>
+        </div>
         <div class="m-2">
             <h2 class="title-original">ORIGINAL</h2>
         </div>
@@ -317,6 +325,7 @@
                     <td></td>
                     <td></td>
                 </tr>
+                {% if group|length > base + 4 and group[base + 4].unit_price > 0 %}
                 <tr class="no-border-row">
                     <td>
                         {% if car_count == 1 %}
@@ -333,6 +342,8 @@
                         defined and group[base+4].amount_in_usd else "" }}
                     </td>
                 </tr>
+                {% endif %}
+                {% if group|length > base + 5 and group[base + 5].unit_price > 0 %}
                 <tr class="no-border-row">
                     <td>
                         {% if car_count == 1 %}
@@ -349,6 +360,7 @@
                     <td class="text-center">{{ "{:,.2f}".format(group[base + 5].amount_in_usd) if group[base+5] is
                         defined and group[base+5].amount_in_usd else "" }}</td>
                 </tr>
+                {% endif %}
                 <tr class="no-border-row">
                     <td>
                         {% if car_count == 1 %}
@@ -367,7 +379,7 @@
                 {% set item_counter = item_counter + 1 %}
                 {% endfor %}
 
-
+                {% if invoice.term_condition %}
                 <tr class="no-border-row">
                     <td>
                         <div class="mt-60" style="margin-left: 20px; margin-top: 200px;">
@@ -379,7 +391,19 @@
                     <td></td>
                     <td></td>
                 </tr>
-
+                {% else %}
+                <tr class="no-border-row">
+                    <td>
+                        <br>
+                        <br>
+                        <br>
+                        <br>
+                    </td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                {% endif %}
                 <tr>
                     <td colspan="2" class="p-2 text-center font-bold" style="vertical-align: middle">(TOTAL USD TWENTY
                         THOUSAND
