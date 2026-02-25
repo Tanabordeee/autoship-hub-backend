@@ -22,6 +22,7 @@ from app.api.deps import get_current_user
 from app.models.user import User
 from app.services.proforma_invoice_service import generate_pdf
 from typing import List
+from app.services.proforma_invoice_service import generate_excel
 
 router = APIRouter()
 
@@ -102,3 +103,24 @@ def get_chassis_by_pi_id_endpoint(
     current_user: User = Depends(get_current_user),
 ):
     return get_chassis_by_pi_id(db, payload.pi_ids)
+
+
+@router.get("/proforma_invoices/{pi_id}/excel")
+def generate_excel_endpoint(
+    pi_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    excel_dir = "E:\\job\\autoship-hub-server\\app\\excel"
+    if not os.path.exists(excel_dir):
+        os.makedirs(excel_dir)
+
+    file_path = os.path.join(excel_dir, f"invoice_{pi_id}.xlsx")
+
+    generate_excel(pi_id, db, file_path)
+
+    return FileResponse(
+        file_path,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        filename=f"invoice_{pi_id}.xlsx",
+    )
