@@ -7,6 +7,8 @@ from app.services.si import create_si, confirm_si
 from app.api.deps import get_current_user
 from app.models.user import User
 from fastapi import Body
+from app.services.si import generate_excel
+import os
 
 router = APIRouter()
 
@@ -25,6 +27,29 @@ def create_si_endpoint(
             media_type="application/pdf",
             filename=filename,
             headers={"X-SI-ID": str(result["si_id"])},
+        )
+    return {"error": "Failed to generate SI"}
+
+
+@router.post("/si-excel")
+def create_si_excel_endpoint(
+    db: Session = Depends(get_db),
+    payload: SICreate = Body(...),
+    current_user: User = Depends(get_current_user),
+):
+    excel_dir = "E:\\job\\autoship-hub-server\\app\\excel"
+    if not os.path.exists(excel_dir):
+        os.makedirs(excel_dir)
+
+    file_path = os.path.join(excel_dir, f"si_{payload.transaction_id}.xlsx")
+    payload.output_path = file_path
+    result = generate_excel(db, payload)
+    if result:
+        filename = result["output_path"].split("\\")[-1]
+        return FileResponse(
+            result["output_path"],
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            filename=filename,
         )
     return {"error": "Failed to generate SI"}
 
