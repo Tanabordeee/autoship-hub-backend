@@ -16,9 +16,9 @@
                 | safe }}
             </div>
             <div class="mb-16">
-                <p>TO ORDER OF COMMERCIAL BANK OF CEYLON PLC</p>
-                <p>IMPORTS DEPT ., NO.21, SIR RAZIK FAREED MAWATHA</p>
-                <p>COLOMBO 07, SRI LANKA</p>
+                {% for line in bank_lines %}
+                <p>{{ line }}</p>
+                {% endfor %}
             </div>
             <div class="border-l border-black pl-2 mb-16">
                 {{ lc.applicant_50

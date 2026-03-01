@@ -47,8 +47,26 @@ def create_si(db: Session, payload: SICreate, user_id: int):
 
     env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dir))
     template = env.get_template(template_file)
+    bank_text = lc.document_require_46a["items"][1]["conditions"]
+    match = re.search(r"TO ORDER OF.*?SRI LANKA", bank_text, re.DOTALL)
+    bank_lines = []
+    if match:
+        full_text = match.group(0)
+        # ลบ comma ซ้ำ + เว้นวรรคเกิน
+        full_text = re.sub(r"\s+", " ", full_text)
+
+        # แยกด้วย comma
+        parts = [p.strip() for p in full_text.split(",")]
+
+        if len(parts) >= 3:
+            bank_lines = [
+                parts[0],  # TO ORDER OF COMMERCIAL BANK...
+                ", ".join(parts[1:-1]),  # IMPORTS DEPT..., MAWATHA
+                parts[-1],  # COLOMBO 01 SRI LANKA
+            ]
     # Render HTML
     html_out = template.render(
+        bank_lines=bank_lines,
         si=si,
         lc=lc,
         port_of_discharge=payload.port_of_discharge,
