@@ -111,23 +111,35 @@ UNIT PRICE: USD 13,500",
     return content
 
 
-#     review_prompt = f"""
-# นี่คือ JSON ที่คุณดึงมา:
-# {content}
+def extract_bank_name(prompt: str):
+    response = ollama.chat(
+        model="qwen2.5:7b-instruct",
+        messages=[
+            {
+                "role": "user",
+                "content": f"""
+            คุณเป็นผู้ช่วยดึงข้อมูลจาก Letter of Credit (LC) field
+นี่คือเนื้อหา
+{prompt}
+คำสั่ง:
+1. ดึงชื่อธนาคารผู้ออก LC ออกมาเป็น JSON
+2. คืนค่าผลลัพธ์เป็น JSON ล้วน ไม่ต้องมีข้อความอื่น
 
-# ORIGINAL DATA
-# {prompt}
-# ตรวจสอบว่าครบทุก item, ลำดับถูกต้อง, มี H.S. CODE ทุก item
-# ถ้ามี missing ให้เติม null
-# ส่ง JSON array ใหม่
-# """
-#     review_response = ollama.chat(
-#         model="qwen2.5:7b-instruct",
-#         messages=[{"role": "user", "content": review_prompt}],
-#         options={"temperature": 0},
-#     )
-
-#     return review_response["message"]["content"]
+ตัวอย่าง output:
+{{
+"bank_name": "BANK NAME"
+}}
+            """,
+            },
+        ],
+        options={"temperature": 0},
+        format="json",
+    )
+    content = response["message"]["content"]
+    try:
+        return json.loads(content).get("bank_name")
+    except Exception:
+        return None
 
 
 def extract_lc(db: Session, file: UploadFile, user_id: int, transaction_id: int):
@@ -355,6 +367,7 @@ def extract_lc(db: Session, file: UploadFile, user_id: int, transaction_id: int)
         print(llm_output)
         description_of_good_45a_45b = None
     document_require_46a = extract_document_require_46A(full_text)
+    bank_name = extract_bank_name(full_text[:400])
     # Build response JSON
     response_data = {
         "beneficiary_59": extracted_data["beneficiary_59"].group(1).strip()
@@ -477,9 +490,13 @@ def extract_lc(db: Session, file: UploadFile, user_id: int, transaction_id: int)
         .strip()
         if extracted_data["receiver_reference_21"]
         else None,
-        "issuing_bank_52a": extracted_data["issuing_bank_52a"].group(1).strip()
-        if extracted_data["issuing_bank_52a"]
-        else None,
+        "issuing_bank_52a": (
+            extracted_data["issuing_bank_52a"].group(1).strip()
+            if extracted_data["issuing_bank_52a"]
+            else bank_name
+            if bank_name
+            else None
+        ),
         "purpose_of_message_22a": extracted_data["purpose_of_message_22a"]
         .group(1)
         .strip()
@@ -502,5 +519,6 @@ def extract_lc(db: Session, file: UploadFile, user_id: int, transaction_id: int)
     audit_log_service.log_action(db, "extract", "lc", user_id, transaction_id)
     return response_data
 
-def get_lc_by_id(db : Session , id : int):
-    return LCRepo.get_all_versions_by_id(db , id)
+
+def get_lc_by_id(db: Session, id: int):
+    return LCRepo.get_all_versions_by_id(db, id)

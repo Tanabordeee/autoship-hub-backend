@@ -310,7 +310,7 @@ def fill_data(ws, data):
         + (lc.date_of_issue_31c or "")
     )
     _set_merged_value(ws, 42 + offset, 4, credit_info)
-    _set_merged_value(ws, 43 + offset, 4, "COMMERCIAL BANK OF CEYLON PLC COLOMBO")
+    _set_merged_value(ws, 43 + offset, 4, lc.issuing_bank_52a)
 
     booking_seal = (booking.carrier_booking_no or "") + " / " + (seal_no or "")
     _set_merged_value(ws, 53 + offset, 1, booking_seal)

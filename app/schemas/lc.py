@@ -2,6 +2,7 @@ from pydantic import BaseModel
 from typing import Optional, Any
 from datetime import datetime
 
+
 class LCBase(BaseModel):
     beneficiary_59: Optional[str] = None
     applicant_50: Optional[str] = None
@@ -40,11 +41,14 @@ class LCBase(BaseModel):
     pdf_path: Optional[str] = None
     user_id: Optional[int] = None
 
+
 class LCCreate(LCBase):
     pass
 
+
 class LCUpdate(LCBase):
     pass
+
 
 class LC(LCBase):
     id: int
@@ -52,5 +56,7 @@ class LC(LCBase):
 
     class Config:
         from_attributes = True
+
+
 class LC_id(LCBase):
-    id : int
+    id: int
