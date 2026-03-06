@@ -102,6 +102,9 @@ def create_vehicle_register(
     ProformaInvoiceRepo.update_vehicle_register_pi_items(
         db, payload.chassis, vehicle_register.id
     )
+    ProformaInvoiceRepo.update_chassis_pi_items(
+        db, payload.chassis, vehicle_register.chassis_no
+    )
     TransactionRepo.update(
         db,
         transaction_id,
