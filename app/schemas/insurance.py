@@ -1,4 +1,5 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
+from typing import Optional
 
 
 class InsuranceCheck(BaseModel):
@@ -30,8 +31,17 @@ class InsuranceCreate(BaseModel):
     date: str
 
 
+class Insurance(InsuranceCreate):
+    id: int
+    user_id: Optional[int] = None
+    model_config = ConfigDict(from_attributes=True)
+
+
 class InsuranceConfirm(BaseModel):
     insurance_id: int
     transaction_id: int
+
+
 class Insurance_id(BaseModel):
-    id : int
+    id: int
+    model_config = ConfigDict(from_attributes=True)

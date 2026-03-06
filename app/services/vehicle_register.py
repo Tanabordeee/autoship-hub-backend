@@ -10,6 +10,13 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font
 from openpyxl.utils import get_column_letter
 from app.services.audit_log_service import audit_log_service
+from app.repositories.extraction_job_repo import ExtractionJobRepo
+from app.schemas.extraction_job import ExtractionJobCreate, ExtractionJobUpdate
+from app.db.session import SessionLocal
+import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def safe_search(pattern, content):
@@ -19,46 +26,73 @@ def safe_search(pattern, content):
     return None
 
 
-def extract_vehicle_register(db: Session, file, transaction_id: int, user_id: int):
-    text = ""
-    file.file.seek(0)
-    with pdfplumber.open(file.file) as pdf:
-        for page in pdf.pages:
-            text += page.extract_text() or ""
-    result = {
-        "date_of_registration": safe_search(
-            r"Date\s*of\s*Registration\s*(\d{1,2}\s+[A-Za-z]+\s+\d{4})", text
-        ),  #
-        "registration_no": safe_search(
-            r"Registration\s*No.\s*(.*?)\s*(?=Province)", text
-        ),  #
-        "province": safe_search(r"Province\s*(.*?)(?=\s*Type)", text),  #
-        "type_car": safe_search(r"Type\s*(.*?)(?=\s*Characteristics)", text),  #
-        "characteristics": safe_search(r"Characteristics\s*:\s*([^\r\n]+)", text),  #
-        "vehicle_make": safe_search(r"Vehicle\s*Make\s*:\s*(.*?)(?=\s*Model)", text),  #
-        "model": safe_search(r"Model\s*:\s*(.*?)(?=\s*Model)", text),  #
-        "model_year": safe_search(r"Model\s*year\s*(\d{4})", text),  #
-        "colour": safe_search(r"Colour\s*(.*?)(?=\s*Chassis)", text),  #
-        "chassis_no": safe_search(r"Chassis\s*No\.\s*(.*?)(?=\s+At\b)", text),  #
-        "car_engine": safe_search(r"Car\s*Engine\s*(.*)(?=\s*Engine\s*No)", text),  #
-        "engine_no": safe_search(r"Engine\s*No\.\s*(.*?)(?=\s*At\b)", text),  #
-        "fuel_type": safe_search(r"Fuel\s*Type\s*(.*)(?=\s*Gas)", text),  #
-        "vehicle_weight": safe_search(
-            r"Vehicle\s*Weight\s*(.*)(?=\s*Loading)", text
-        ),  #
-        "total_weight": safe_search(r"Total\s*Weight\s*(.*)(?=\s*Seat)", text),  #
-        "seat": safe_search(r"Seat\s*:\s*(\d+)", text),
-    }
-    TransactionRepo.update(
-        db,
-        transaction_id,
-        TransactionUpdate(status="pending", current_process="vehicle_register"),
-        user_id,
-    )
-    audit_log_service.log_action(
-        db, "extract", "vehicle_register", user_id, transaction_id
-    )
-    return result
+def extract_vehicle_register(
+    db: Session, file_path: str, transaction_id: int, user_id: int, job_id: str = None
+):
+    try:
+        text = ""
+        with pdfplumber.open(file_path) as pdf:
+            for page in pdf.pages:
+                text += page.extract_text() or ""
+        result = {
+            "date_of_registration": safe_search(
+                r"Date\s*of\s*Registration\s*(\d{1,2}\s+[A-Za-z]+\s+\d{4})", text
+            ),
+            "registration_no": safe_search(
+                r"Registration\s*No.\s*(.*?)\s*(?=Province)", text
+            ),
+            "province": safe_search(r"Province\s*(.*?)(?=\s*Type)", text),
+            "type_car": safe_search(r"Type\s*(.*?)(?=\s*Characteristics)", text),
+            "characteristics": safe_search(r"Characteristics\s*:\s*([^\r\n]+)", text),
+            "vehicle_make": safe_search(
+                r"Vehicle\s*Make\s*:\s*(.*?)(?=\s*Model)", text
+            ),
+            "model": safe_search(r"Model\s*:\s*(.*?)(?=\s*Model)", text),
+            "model_year": safe_search(r"Model\s*year\s*(\d{4})", text),
+            "colour": safe_search(r"Colour\s*(.*?)(?=\s*Chassis)", text),
+            "chassis_no": safe_search(r"Chassis\s*No\.\s*(.*?)(?=\s+At\b)", text),
+            "car_engine": safe_search(r"Car\s*Engine\s*(.*)(?=\s*Engine\s*No)", text),
+            "engine_no": safe_search(r"Engine\s*No\.\s*(.*?)(?=\s*At\b)", text),
+            "fuel_type": safe_search(r"Fuel\s*Type\s*(.*)(?=\s*Gas)", text),
+            "vehicle_weight": safe_search(
+                r"Vehicle\s*Weight\s*(.*)(?=\s*Loading)", text
+            ),
+            "total_weight": safe_search(r"Total\s*Weight\s*(.*)(?=\s*Seat)", text),
+            "seat": safe_search(r"Seat\s*:\s*(\d+)", text),
+        }
+        TransactionRepo.update(
+            db,
+            transaction_id,
+            TransactionUpdate(status="pending", current_process="vehicle_register"),
+            user_id,
+        )
+        audit_log_service.log_action(
+            db, "extract", "vehicle_register", user_id, transaction_id
+        )
+        return result
+    except Exception as e:
+        logger.error(f"Error extracting vehicle register: {str(e)}")
+        raise
+
+
+def process_vehicle_register_extraction(
+    job_id: str, file_path: str, user_id: int, transaction_id: int
+):
+    db = SessionLocal()
+    try:
+        ExtractionJobRepo.update(db, job_id, ExtractionJobUpdate(status="processing"))
+        result = extract_vehicle_register(
+            db, file_path, transaction_id, user_id, job_id
+        )
+        ExtractionJobRepo.update(
+            db, job_id, ExtractionJobUpdate(status="completed", result=result)
+        )
+    except Exception as e:
+        ExtractionJobRepo.update(
+            db, job_id, ExtractionJobUpdate(status="failed", error_message=str(e))
+        )
+    finally:
+        db.close()
 
 
 def create_vehicle_register(
@@ -136,5 +170,6 @@ def create_vehicle_register_excel(
     )
     return file_path
 
-def get_vehicle_register_by_id(db : Session , id : int):
-    return VehicleRegisterRepo.get_by_id(db , id)
+
+def get_vehicle_register_by_id(db: Session, id: int):
+    return VehicleRegisterRepo.get_by_id(db, id)

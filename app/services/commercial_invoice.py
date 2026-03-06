@@ -9,7 +9,8 @@ from app.repositories.bv import BVRepository
 from app.repositories.si import SI_Repository
 from app.repositories.booking import BookingRepo
 import re
-import ollama
+from openai import OpenAI
+from app.core.config import settings
 from sqlalchemy.orm import Session
 import json
 from app.repositories.transaction_repo import TransactionRepo
@@ -21,17 +22,44 @@ from app.repositories.commercial_invoice import CommercialInvoiceRepo
 from app.services.audit_log_service import audit_log_service
 from openpyxl import load_workbook
 from openpyxl.styles import Alignment
+from app.db.session import SessionLocal
+from app.repositories.extraction_job_repo import ExtractionJobRepo
+from app.schemas.extraction_job import ExtractionJobCreate, ExtractionJobUpdate
+import uuid
+import logging
+
+logger = logging.getLogger(__name__)
+
+if settings.DEMO == 1:
+    # Initialize Typhoon Client
+    client = OpenAI(
+        api_key=settings.TYPHOON_API_KEY, base_url=settings.TYPHOON_CHAT_URL
+    )
+else:
+    import ollama
 
 
 def call_gemma_extract(prompt: str, system_prompt: str):
-    response = ollama.chat(
-        model="qwen2.5:7b-instruct",
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": prompt},
-        ],
-    )
-    return response["message"]["content"]
+    if settings.DEMO == 1:
+        response = client.chat.completions.create(
+            model=settings.TYPHOON_CHAT_MODEL,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0,
+            max_tokens=4096,
+        )
+        return response.choices[0].message.content
+    else:
+        response = ollama.chat(
+            model="qwen2.5:7b-instruct",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": prompt},
+            ],
+        )
+        return response["message"]["content"]
 
 
 def parse_json_result(result_str: str):
@@ -69,10 +97,11 @@ def parse_json_result(result_str: str):
 
 def generate_commercial_invoice(payload: CommercialInvoice, db: Session, user_id: int):
     pi = ProformaInvoiceRepo.get_by_id(db, payload.pi_id)
+    pi_items = ProformaInvoiceRepo.get_pi_items_by_chassis(db, payload.chassis_no)
     lc = LCRepo.get_by_id(db, payload.lc_id)
-    si = SI_Repository.get_by_id(db, payload.si_id)
-    bv = BVRepository.get_by_id(db, payload.bv_id)
-    booking = BookingRepo.get_by_id(db, payload.booking_id)
+    si = SI_Repository.get_by_id(db, pi_items.si_id)
+    bv = BVRepository.get_by_id(db, pi_items.bv_id)
+    booking = BookingRepo.get_by_id(db, pi_items.booking_id)
     # Setup Jinja2
     template_path = (
         r"E:\\job\\autoship-hub-server\\app\\templates\\commercial_invoice.html"
@@ -263,6 +292,25 @@ Rules:
     return {"output_path": output_path}
 
 
+def process_commercial_invoice_generation(
+    job_id: str, payload: CommercialInvoice, user_id: int
+):
+    db = SessionLocal()
+    try:
+        ExtractionJobRepo.update(db, job_id, ExtractionJobUpdate(status="processing"))
+        result = generate_commercial_invoice(payload, db, user_id)
+        ExtractionJobRepo.update(
+            db, job_id, ExtractionJobUpdate(status="completed", result=result)
+        )
+    except Exception as e:
+        logger.error(f"Error generating commercial invoice: {str(e)}")
+        ExtractionJobRepo.update(
+            db, job_id, ExtractionJobUpdate(status="failed", error_message=str(e))
+        )
+    finally:
+        db.close()
+
+
 def _set_merged_value(ws, addr: str, value):
     cell = ws[addr]
     from openpyxl.cell.cell import MergedCell
@@ -311,10 +359,11 @@ def generate_commercial_invoice_excel(
     db: Session, payload: CommercialInvoice, user_id: int
 ):
     pi = ProformaInvoiceRepo.get_by_id(db, payload.pi_id)
+    pi_items = ProformaInvoiceRepo.get_pi_items_by_chassis(db, payload.chassis_no)
     lc = LCRepo.get_by_id(db, payload.lc_id)
-    si = SI_Repository.get_by_id(db, payload.si_id)
-    bv = BVRepository.get_by_id(db, payload.bv_id)
-    booking = BookingRepo.get_by_id(db, payload.booking_id)
+    si = SI_Repository.get_by_id(db, pi_items.si_id)
+    bv = BVRepository.get_by_id(db, pi_items.bv_id)
+    booking = BookingRepo.get_by_id(db, pi_items.booking_id)
 
     # Extraction logic (same as PDF version)
     proforma_invoice_no = ""
@@ -526,6 +575,25 @@ Rules:
     return {"output_path": output_path}
 
 
+def process_commercial_invoice_excel_generation(
+    job_id: str, payload: CommercialInvoice, user_id: int
+):
+    db = SessionLocal()
+    try:
+        ExtractionJobRepo.update(db, job_id, ExtractionJobUpdate(status="processing"))
+        result = generate_commercial_invoice_excel(db, payload, user_id)
+        ExtractionJobRepo.update(
+            db, job_id, ExtractionJobUpdate(status="completed", result=result)
+        )
+    except Exception as e:
+        logger.error(f"Error generating commercial invoice excel: {str(e)}")
+        ExtractionJobRepo.update(
+            db, job_id, ExtractionJobUpdate(status="failed", error_message=str(e))
+        )
+    finally:
+        db.close()
+
+
 def confirm_commercial_invoice(
     db: Session, payload: CreateCommercialInvoicePayload, user_id: int
 ):
@@ -542,5 +610,8 @@ def confirm_commercial_invoice(
     )
     audit_log_service.log_action(
         db, "confirm", "commercial_invoice", user_id, payload.transaction_id
+    )
+    ProformaInvoiceRepo.update_commercial_invoice_pi_items(
+        db, payload.chassis_no, commcercial_invoice.id
     )
     return commcercial_invoice

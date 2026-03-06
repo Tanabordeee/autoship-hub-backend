@@ -1,4 +1,5 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
+from typing import Optional
 
 
 class BLCheck(BaseModel):
@@ -31,6 +32,13 @@ class BLCreate(BaseModel):
     seal_no: str
     size_no: str
     version_bl: int
+    chassis: str
+
+
+class BL(BLCreate):
+    id: int
+    chassis: Optional[str] = None
+    model_config = ConfigDict(from_attributes=True)
 
 
 class TransactionStatusUpdateConfirm(BaseModel):
@@ -42,5 +50,6 @@ class TransactionStatusUpdateReject(BaseModel):
     transaction_id: int
     bl_id: int
 
+
 class BL_id(BaseModel):
-    id : int
+    id: int

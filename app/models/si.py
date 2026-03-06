@@ -17,3 +17,4 @@ class SI(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     user = relationship("User", back_populates="si")
     transactions = relationship("Transaction", back_populates="si")
+    pi_items = relationship("PiItem", back_populates="si")

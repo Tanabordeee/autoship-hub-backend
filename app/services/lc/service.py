@@ -1,9 +1,8 @@
-import os
 import re
 from sqlalchemy.orm import Session
 from fastapi import UploadFile
 from pdf2image import convert_from_path
-
+from app.db.session import SessionLocal
 from app.schemas.lc import LCCreate
 from app.repositories.lc_repo import LCRepo
 from app.repositories.transaction_repo import TransactionRepo
@@ -13,9 +12,20 @@ from app.services.ocr_service import ocr_image
 from .parser import clean_text_common, clean_45a_text, extract_document_require_46A
 from app.repositories.proforma_invoice_repo import ProformaInvoiceRepo
 from app.services.audit_log_service import audit_log_service
-import ollama
+from app.repositories.extraction_job_repo import ExtractionJobRepo
+from app.schemas.extraction_job import ExtractionJobUpdate
+from openai import OpenAI
 import json
 import logging
+from app.core.config import settings
+
+# Initialize Typhoon Client
+if settings.DEMO == 1:
+    client = OpenAI(
+        api_key=settings.TYPHOON_API_KEY, base_url=settings.TYPHOON_CHAT_URL
+    )
+else:
+    import ollama
 
 logger = logging.getLogger(__name__)
 
@@ -68,92 +78,153 @@ schema = {
 
 
 def call_qwen(prompt: str):
-    response = ollama.chat(
-        model="qwen2.5:7b-instruct",
-        messages=[
-            {
-                "role": "user",
-                "content": f"""
-            คุณเป็นผู้ช่วยดึงข้อมูลจาก Letter of Credit (LC) field 45A: DESCRIPTION OF GOODS AND/OR SERVICES
-นี่คือเนื้อหา 45A:
-{prompt}
-คำสั่ง:
-1. ดึงรายการสินค้า/รถแต่ละรายการออกมาเป็น JSON
-2. แต่ละ item ต้องมี fields:
-- item_no: เลขลำดับรายการ (เช่น 1, 2, 3…)
-- description: รายละเอียดของรถ
-3. ถ้า field ไหนไม่มี ให้ใช้ค่า null
-4. คืนค่าผลลัพธ์เป็น JSON ล้วน ไม่ต้องมีข้อความอื่น
-5. ลำดับ item ต้องตรงตามที่ปรากฏใน text
+    if settings.DEMO == 1:
+        response = client.chat.completions.create(
+            model=settings.TYPHOON_CHAT_MODEL,
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"""
+                    คุณเป็นผู้ช่วยดึงข้อมูลจาก Letter of Credit (LC) field 45A: DESCRIPTION OF GOODS AND/OR SERVICES
+        นี่คือเนื้อหา 45A:
+        {prompt}
+        คำสั่ง:
+        1. ดึงรายการสินค้า/รถแต่ละรายการออกมาเป็น JSON
+        2. แต่ละ item ต้องมี fields:
+        - item_no: เลขลำดับรายการ (เช่น 1, 2, 3…)
+        - description: รายละเอียดของรถ
+        3. ถ้า field ไหนไม่มี ให้ใช้ค่า null
+        4. คืนค่าผลลัพธ์เป็น JSON ล้วน ไม่ต้องมีข้อความอื่น
+        5. ลำดับ item ต้องตรงตามที่ปรากฏใน text
 
-ตัวอย่าง output:
-[
-{{
-"item_no": 1,
-"description": "1) ONE UNIT OF USED HONDA CITY 1.0RS VTEC TURBO AUTO
-YEAR OF MANUFACTURE: 2025
-CHASSIS: MRHGN1680ST102773 WLT018
-H.S. CODE: 8703.21.69
-UNIT PRICE: USD 13,500",
-}},
-{{
-"item_no": 2,
-"description": "2) ONE UNIT OF USED HONDA CITY 1.0RS VTEC TURBO AUTO\nYEAR OF MANUFACTURE: 2025\nCHASSIS: MRHGN1680ST102248 WLT019\nH.S. CODE: 8703.21.69 UNIT PRICE: USD 13,500",
-}},
-]     
-            """,
-            },
-        ],
-        options={"temperature": 0},
-        format=schema,
-    )
-    content = response["message"]["content"]
-    return content
+        ตัวอย่าง output:
+        [
+        {{
+        "item_no": 1,
+        "description": "1) ONE UNIT OF USED HONDA CITY 1.0RS VTEC TURBO AUTO\\nYEAR OF MANUFACTURE: 2025\\nCHASSIS: MRHGN1680ST102773 WLT018\\nH.S. CODE: 8703.21.69\\nUNIT PRICE: USD 13,500",
+        }},
+        {{
+        "item_no": 2,
+        "description": "2) ONE UNIT OF USED HONDA CITY 1.0RS VTEC TURBO AUTO\\nYEAR OF MANUFACTURE: 2025\\nCHASSIS: MRHGN1680ST102248 WLT019\\nH.S. CODE: 8703.21.69 UNIT PRICE: USD 13,500",
+        }},
+        ]
+                    """,
+                },
+            ],
+            temperature=0,
+            max_tokens=4096,
+        )
+        content = response.choices[0].message.content
+        return content
+    else:
+        response = ollama.chat(
+            model="qwen2.5:7b-instruct",
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"""
+            คุณเป็นผู้ช่วยดึงข้อมูลจาก Letter of Credit (LC) field 45A: DESCRIPTION OF GOODS AND/OR SERVICES
+        นี่คือเนื้อหา 45A:
+        {prompt}
+        คำสั่ง:
+        1. ดึงรายการสินค้า/รถแต่ละรายการออกมาเป็น JSON
+        2. แต่ละ item ต้องมี fields:
+        - item_no: เลขลำดับรายการ (เช่น 1, 2, 3…)
+        - description: รายละเอียดของรถ
+        3. ถ้า field ไหนไม่มี ให้ใช้ค่า null
+        4. คืนค่าผลลัพธ์เป็น JSON ล้วน ไม่ต้องมีข้อความอื่น
+        5. ลำดับ item ต้องตรงตามที่ปรากฏใน text
+
+        ตัวอย่าง output:
+        [
+        {{
+        "item_no": 1,
+        "description": "1) ONE UNIT OF USED HONDA CITY 1.0RS VTEC TURBO AUTO
+        YEAR OF MANUFACTURE: 2025
+        CHASSIS: MRHGN1680ST102773 WLT018
+        H.S. CODE: 8703.21.69
+        UNIT PRICE: USD 13,500",
+        }},
+        {{
+        "item_no": 2,
+        "description": "2) ONE UNIT OF USED HONDA CITY 1.0RS VTEC TURBO AUTO\nYEAR OF MANUFACTURE: 2025\nCHASSIS: MRHGN1680ST102248 WLT019\nH.S. CODE: 8703.21.69 UNIT PRICE: USD 13,500",
+        }},
+        ]     
+                    """,
+                },
+            ],
+            options={"temperature": 0},
+            format=schema,
+        )
+        content = response["message"]["content"]
+        return content
 
 
 def extract_bank_name(prompt: str):
-    response = ollama.chat(
-        model="qwen2.5:7b-instruct",
-        messages=[
-            {
-                "role": "user",
-                "content": f"""
+    if settings.DEMO == 1:
+        response = client.chat.completions.create(
+            model=settings.TYPHOON_CHAT_MODEL,
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"""
+                คุณเป็นผู้ช่วยดึงข้อมูลจาก Letter of Credit (LC) field
+        นี่คือเนื้อหา
+        {prompt}
+        คำสั่ง:
+        1. ดึงชื่อธนาคารผู้ออก LC ออกมาเป็น JSON
+        2. คืนค่าผลลัพธ์เป็น JSON ล้วน ไม่ต้องมีข้อความอื่น
+
+        ตัวอย่าง output:
+        {{
+        "bank_name": "BANK NAME"
+        }}
+                    """,
+                },
+            ],
+            temperature=0,
+            max_tokens=512,
+        )
+        content = response.choices[0].message.content
+        try:
+            return json.loads(content).get("bank_name")
+        except Exception:
+            return None
+    else:
+        response = ollama.chat(
+            model="qwen2.5:7b-instruct",
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"""
             คุณเป็นผู้ช่วยดึงข้อมูลจาก Letter of Credit (LC) field
-นี่คือเนื้อหา
-{prompt}
-คำสั่ง:
-1. ดึงชื่อธนาคารผู้ออก LC ออกมาเป็น JSON
-2. คืนค่าผลลัพธ์เป็น JSON ล้วน ไม่ต้องมีข้อความอื่น
+        นี่คือเนื้อหา
+        {prompt}
+        คำสั่ง:
+        1. ดึงชื่อธนาคารผู้ออก LC ออกมาเป็น JSON
+        2. คืนค่าผลลัพธ์เป็น JSON ล้วน ไม่ต้องมีข้อความอื่น
 
-ตัวอย่าง output:
-{{
-"bank_name": "BANK NAME"
-}}
+        ตัวอย่าง output:
+        {{
+        "bank_name": "BANK NAME"
+        }}
             """,
-            },
-        ],
-        options={"temperature": 0},
-        format="json",
-    )
-    content = response["message"]["content"]
-    try:
-        return json.loads(content).get("bank_name")
-    except Exception:
-        return None
+                },
+            ],
+            options={"temperature": 0},
+            format="json",
+        )
+        content = response["message"]["content"]
+        try:
+            return json.loads(content).get("bank_name")
+        except Exception:
+            return None
 
 
-def extract_lc(db: Session, file: UploadFile, user_id: int, transaction_id: int):
+def extract_lc(db: Session, file_path: str, user_id: int, transaction_id: int):
     """
     Extract LC data from PDF file and return as JSON
     """
-    # Save uploaded file
-    upload_dir = "app/pdf"
-    if not os.path.exists(upload_dir):
-        os.makedirs(upload_dir)
-    file_path = os.path.join(upload_dir, file.filename)
-    with open(file_path, "wb") as buffer:
-        buffer.write(file.file.read())
-
     PDF_PATH = file_path
     POPPLER_PATH = settings.POPPLER_PATH
 
@@ -289,7 +360,7 @@ def extract_lc(db: Session, file: UploadFile, user_id: int, transaction_id: int)
             re.DOTALL | re.IGNORECASE,
         ),
         "sender_reference_20": re.search(
-            r":20:\s*(.*?)\s*(?=\n:\d{2}[A-Z]?:|\Z)",
+            r":20: SENDER\s*(.*?)\s*(?=\n:\d{2}[A-Z]?:|\Z)",
             full_text,
             re.DOTALL | re.IGNORECASE,
         ),
@@ -491,10 +562,10 @@ def extract_lc(db: Session, file: UploadFile, user_id: int, transaction_id: int)
         if extracted_data["receiver_reference_21"]
         else None,
         "issuing_bank_52a": (
-            extracted_data["issuing_bank_52a"].group(1).strip()
-            if extracted_data["issuing_bank_52a"]
-            else bank_name
+            bank_name
             if bank_name
+            else extracted_data["issuing_bank_52a"].group(1).strip()
+            if extracted_data["issuing_bank_52a"]
             else None
         ),
         "purpose_of_message_22a": extracted_data["purpose_of_message_22a"]
@@ -522,3 +593,32 @@ def extract_lc(db: Session, file: UploadFile, user_id: int, transaction_id: int)
 
 def get_lc_by_id(db: Session, id: int):
     return LCRepo.get_all_versions_by_id(db, id)
+
+
+def process_extraction_job(
+    job_id: str, file_path: str, user_id: int, transaction_id: int
+):
+    """
+    Background task for LC extraction
+    """
+    db = SessionLocal()
+    try:
+        # Update job status to processing
+        ExtractionJobRepo.update(db, job_id, ExtractionJobUpdate(status="processing"))
+
+        # Execute extraction logic
+        result = extract_lc(db, file_path, user_id, transaction_id)
+
+        # Update job status to completed with result
+        ExtractionJobRepo.update(
+            db, job_id, ExtractionJobUpdate(status="completed", result=result)
+        )
+        logger.info(f"Extraction job {job_id} completed successfully")
+
+    except Exception as e:
+        logger.error(f"Extraction job {job_id} failed: {str(e)}", exc_info=True)
+        ExtractionJobRepo.update(
+            db, job_id, ExtractionJobUpdate(status="failed", error_message=str(e))
+        )
+    finally:
+        db.close()

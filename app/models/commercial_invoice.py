@@ -12,3 +12,4 @@ class CommercialInvoice(Base):
 
     user = relationship("User", back_populates="commercial_invoice")
     transactions = relationship("Transaction", back_populates="commercial_invoice")
+    pi_items = relationship("PiItem", back_populates="commercial_invoice")

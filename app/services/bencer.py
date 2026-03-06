@@ -12,13 +12,16 @@ from app.schemas.transaction import TransactionUpdate
 from app.schemas.bencer import CreateBencer
 from app.repositories.bencer import BencerRepo
 from app.services.audit_log_service import audit_log_service
+from app.repositories.proforma_invoice_repo import ProformaInvoiceRepo
+import re
 
 
 def generate_bencer(db: Session, payload: BencerGenerate, user_id: int):
     lc = LCRepo.get_by_id(db, payload.lc_id)
-    vr = VehicleRegisterRepo.get_by_id(db, payload.vehicle_register_id)
+    pi_items = ProformaInvoiceRepo.get_pi_items_by_chassis(db, payload.chassis_no)
+    vr = VehicleRegisterRepo.get_by_id(db, pi_items.vehicle_register_id)
     commcercial_invoice = CommercialInvoiceRepo.get_by_id(
-        db, payload.commercial_invoice_id
+        db, pi_items.commercial_invoice_id
     )
     template_path = r"E:\\job\\autoship-hub-server\\app\\templates\\bencer.html"
     template_dir = os.path.dirname(template_path)
@@ -28,10 +31,21 @@ def generate_bencer(db: Session, payload: BencerGenerate, user_id: int):
     # logo_path should be a file:// URL for WeasyPrint on Windows
     logo_file_path = r"E:\\job\\autoship-hub-server\\app\\assets\\logopap.png"
     logo_url = "file:///" + logo_file_path.replace("\\", "/")
+    beneficiary_to_certify = ""
     for i in (lc.document_require_46a or {}).get("items", []):
-        if i.get("doc_type") == "BENEFICIARY_CERTIFICATE":
-            beneficiary_to_certify = i.get("conditions", "")
+        print("condition", i.get("conditions"))
+        conditions = i.get("conditions", "")
+        # จับตั้งแต่ "BENEFICIARY TO CERTIFY" จนถึงคำ "MANUFACTURE"
+        match = re.search(
+            r"(BENEFICIARY\s+TO\s+CERTIFY.*?DATE\s+OF\s+MANUFACTURE\.?)",
+            conditions,
+            re.IGNORECASE | re.DOTALL,
+        )
+        if match:
+            beneficiary_to_certify = match.group(1).strip()
+            break
 
+    print("BENE:", beneficiary_to_certify)
     html_out = template.render(
         logo_url=logo_url,
         lc_credit_number=lc.docmentary_credit_number_20,

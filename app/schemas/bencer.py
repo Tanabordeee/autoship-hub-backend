@@ -8,6 +8,7 @@ class BencerGenerate(BaseModel):
     date: str
     director: str
     commercial_invoice_id: int
+    chassis_no: str
 
 
 class CreateBencer(BaseModel):

@@ -14,3 +14,4 @@ from app.models.commercial_invoice import CommercialInvoice
 from app.models.bencer import Bencer
 from app.models.transaction_user import transaction_users
 from app.models.audit_log import AuditLog
+from app.models.extraction_job import ExtractionJob

@@ -1,8 +1,9 @@
-from app.services.ocr_service import extract_text_from_file
+from app.services.ocr_service import extract_text_from_file, extract_text_from_path
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
-import ollama
+from openai import OpenAI
+from app.core.config import settings
 from fastapi import UploadFile
 from app.repositories.transaction_repo import TransactionRepo
 from app.schemas.transaction import TransactionUpdate
@@ -17,6 +18,21 @@ from app.repositories.insurance import InsuranceRepo
 from app.schemas.insurance import InsuranceConfirm
 import logging
 from app.services.audit_log_service import audit_log_service
+from app.repositories.extraction_job_repo import ExtractionJobRepo
+from app.schemas.extraction_job import ExtractionJobCreate, ExtractionJobUpdate
+import os
+import uuid
+from app.db.session import SessionLocal
+
+logger = logging.getLogger(__name__)
+
+if settings.DEMO == 1:
+    # Initialize Typhoon Client
+    client = OpenAI(
+        api_key=settings.TYPHOON_API_KEY, base_url=settings.TYPHOON_CHAT_URL
+    )
+else:
+    import ollama
 
 
 class InsuranceHeader(BaseModel):
@@ -43,37 +59,69 @@ class InsuranceDetails(BaseModel):
 
 
 def call_gemma_Header(PROMPT):
-    response = ollama.chat(
-        model="qwen2.5:7b-instruct",
-        messages=[
-            {
-                "role": "system",
-                "content": "คุณคือนักจัดการ insurance document ช่วยดึงข้อมูลออกมาใส่ตามเป็น value ให้ key เหล่านี้ โดยห้ามคิดเอาเองให้อิงตาม input user อันไหนที่ไม่รู้ไม่แน่ใจให้ใส่เป็น null และแสดงผลออกมาเป็นรูปแบบ json นี้เท่านั้น copy text verbatim between the heading and next heading",
-            },
-            {"role": "user", "content": PROMPT},
-        ],
-        options={"temperature": 0},
-        format=InsuranceHeader.model_json_schema(),
-    )
-    content = response["message"]["content"]
-    return InsuranceHeader.model_validate_json(content).model_dump()
+    if settings.DEMO == 1:
+        response = client.chat.completions.create(
+            model=settings.TYPHOON_CHAT_MODEL,
+            messages=[
+                {
+                    "role": "system",
+                    "content": "คุณคือนักจัดการ insurance document ช่วยดึงข้อมูลออกมาใส่ตามเป็น value ให้ key เหล่านี้ โดยห้ามคิดเอาเองให้อิงตาม input user อันไหนที่ไม่รู้ไม่แน่ใจให้ใส่เป็น null และแสดงผลออกมาเป็นรูปแบบ json นี้เท่านั้น copy text verbatim between the heading and next heading",
+                },
+                {"role": "user", "content": PROMPT},
+            ],
+            temperature=0,
+            max_tokens=16384,
+        )
+        content = response.choices[0].message.content
+        return InsuranceHeader.model_validate_json(content).model_dump()
+    else:
+        response = ollama.chat(
+            model="qwen2.5:7b-instruct",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "คุณคือนักจัดการ insurance document ช่วยดึงข้อมูลออกมาใส่ตามเป็น value ให้ key เหล่านี้ โดยห้ามคิดเอาเองให้อิงตาม input user อันไหนที่ไม่รู้ไม่แน่ใจให้ใส่เป็น null และแสดงผลออกมาเป็นรูปแบบ json นี้เท่านั้น copy text verbatim between the heading and next heading",
+                },
+                {"role": "user", "content": PROMPT},
+            ],
+            options={"temperature": 0},
+            format=InsuranceHeader.model_json_schema(),
+        )
+        content = response["message"]["content"]
+        return InsuranceHeader.model_validate_json(content).model_dump()
 
 
 def call_gemma_Details(PROMPT):
-    response = ollama.chat(
-        model="qwen2.5:7b-instruct",
-        messages=[
-            {
-                "role": "system",
-                "content": "คุณคือนักจัดการ insurance document ช่วยดึงข้อมูลออกมาใส่ตามเป็น value ให้ key เหล่านี้ โดยห้ามคิดเอาเองให้อิงตาม input user อันไหนที่ไม่รู้ไม่แน่ใจให้ใส่เป็น null และแสดงผลออกมาเป็นรูปแบบ json นี้เท่านั้น copy text verbatim between the heading and next heading",
-            },
-            {"role": "user", "content": PROMPT},
-        ],
-        options={"temperature": 0},
-        format=InsuranceDetails.model_json_schema(),
-    )
-    content = response["message"]["content"]
-    return InsuranceDetails.model_validate_json(content).model_dump()
+    if settings.DEMO == 1:
+        response = client.chat.completions.create(
+            model=settings.TYPHOON_CHAT_MODEL,
+            messages=[
+                {
+                    "role": "system",
+                    "content": "คุณคือนักจัดการ insurance document ช่วยดึงข้อมูลออกมาใส่ตามเป็น value ให้ key เหล่านี้ โดยห้ามคิดเอาเองให้อิงตาม input user อันไหนที่ไม่รู้ไม่แน่ใจให้ใส่เป็น null และแสดงผลออกมาเป็นรูปแบบ json นี้เท่านั้น copy text verbatim between the heading and next heading",
+                },
+                {"role": "user", "content": PROMPT},
+            ],
+            temperature=0,
+            max_tokens=16384,
+        )
+        content = response.choices[0].message.content
+        return InsuranceDetails.model_validate_json(content).model_dump()
+    else:
+        response = ollama.chat(
+            model="qwen2.5:7b-instruct",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "คุณคือนักจัดการ insurance document ช่วยดึงข้อมูลออกมาใส่ตามเป็น value ให้ key เหล่านี้ โดยห้ามคิดเอาเองให้อิงตาม input user อันไหนที่ไม่รู้ไม่แน่ใจให้ใส่เป็น null และแสดงผลออกมาเป็นรูปแบบ json นี้เท่านั้น copy text verbatim between the heading and next heading",
+                },
+                {"role": "user", "content": PROMPT},
+            ],
+            options={"temperature": 0},
+            format=InsuranceDetails.model_json_schema(),
+        )
+        content = response["message"]["content"]
+        return InsuranceDetails.model_validate_json(content).model_dump()
 
 
 def merge_dicts(a: dict, b: dict) -> dict:
@@ -86,9 +134,12 @@ def merge_dicts(a: dict, b: dict) -> dict:
     return result
 
 
-def extract_insurance(db: Session, file: UploadFile, transaction_id: int, user_id: int):
-    raw_text = extract_text_from_file(file)
-    PROMPT1 = f"""
+def extract_insurance(
+    db: Session, file_path: str, transaction_id: int, user_id: int, job_id: str = None
+):
+    try:
+        raw_text = extract_text_from_path(file_path)
+        PROMPT1 = f"""
     USER INPUT
     {raw_text}
     RULES:
@@ -99,20 +150,20 @@ def extract_insurance(db: Session, file: UploadFile, transaction_id: int, user_i
     - Copy text verbatim between the heading and next heading
     {{
     name : บริษัทประกัน เช่น MSIG Insurance (Thailand) Public Company Limited,
-    certificate_no : มักขึ้นต้นด้วย Certificate\s+No แล้วตามหลังด้วยเลข,
-    name_of_insured : มักขึ้นต้นด้วย NAME\s+OF\s+INSURED,
-    vessel : มักขึ้นต้นด้วย VESSEL\/CONVEYANCE,
-    sailing_on_or_about : มักขึ้นต้นด้วย SAILING\s+ON\s+OR\s+ABOUT แล้วตามด้วย วันเดือนปี,
-    voyage : มักขึ้นต้นด้วย VOYAGE\s*:\s*(.+),
+    certificate_no : มักขึ้นต้นด้วย Certificate\\s+No แล้วตามหลังด้วยเลข,
+    name_of_insured : มักขึ้นต้นด้วย NAME\\s+OF\\s+INSURED,
+    vessel : มักขึ้นต้นด้วย VESSEL\\/CONVEYANCE,
+    sailing_on_or_about : มักขึ้นต้นด้วย SAILING\\s+ON\\s+OR\\s+ABOUT แล้วตามด้วย วันเดือนปี,
+    voyage : มักขึ้นต้นด้วย VOYAGE\\s*:\\s*(.+),
     subject_matter_insured : Extract verbatim text starting from the first line under
     "SUBJECT-MATTER INSURED:" in the ATTACHMENT section.
     STOP extraction immediately after the line that contains
     "H.S. CODE" or "H. S. CODE".
     Do NOT include any text after the H.S. CODE line
-    มักขึ้นต้นด้วย SUBJECT[\s\-]*MATTER\s+INSURED
+    มักขึ้นต้นด้วย SUBJECT[\\s\\-]*MATTER\\s+INSURED
     }}
     """
-    PROMPT2 = f"""
+        PROMPT2 = f"""
     USER INPUT
     {raw_text}
     RULES:
@@ -123,29 +174,51 @@ def extract_insurance(db: Session, file: UploadFile, transaction_id: int, user_i
     - Copy text verbatim between the heading and next heading
     {{
     additional_conditional : มักมีคำขึ้นต้นด้วย ADDITIONAL CONDITIONALS
-    special_condition_and_warranties: มักมีคำขึ้นต้นด้วย SPECIAL\s+CONDITIONS\s+AND\s+WARRANTIES,
-    invoice_no : มักจะขึ้นต้นด้วย PROFORMA\s+INVOICE\s+NO\.?\s*[:\-]?\s*([A-Z0-9\-]+)
-    chassis_no : มักขึ้นต้นด้วย CHASSIS\s+NO\.?\s*[:\-]?\s*([A-Z0-9]+),
-    engine : มักขึ้นต้นด้วย ENGINE\s*[:\-]?\s*([A-Z0-9]+) ,
-    the_letter_of_credit_number : มักขึ้นต้นด้วย LETTER\s+OF\s+CREDIT\s+NUMBER\.?\s*[:\-]?\s*([0-9]+),
-    date_of_issue : มักขึ้นต้นด้วย DATE\s+OF\s+ISSUE\s*[:\-]?\s*([0-9]+),
-    bank : มักขึ้นต้นด้วย (PEOPLE'S\s+BANK[\s\S]*?SRI\s+LANKA\.?)
-    commercial_invoice_no : มักขึ้นต้นด้วย COMMERCIAL\s+INVOICE\s+NO\.?\s*[:\-]?\s*([A-Z0-9]+),
+    special_condition_and_warranties: มักมีคำขึ้นต้นด้วย SPECIAL\\s+CONDITIONS\\s+AND\\s+WARRANTIES,
+    invoice_no : มักจะขึ้นต้นด้วย PROFORMA\\s+INVOICE\\s+NO\\.?\\s*[:\\-]?\\s*([A-Z0-9\\-]+)
+    chassis_no : มักขึ้นต้นด้วย CHASSIS\\s+NO\\.?\\s*[:\\-]?\\s*([A-Z0-9]+),
+    engine : มักขึ้นต้นด้วย ENGINE\\s*[:\\-]?\\s*([A-Z0-9]+) ,
+    the_letter_of_credit_number : มักขึ้นต้นด้วย LETTER\\s+OF\\s+CREDIT\\s+NUMBER\\.?\\s*[:\\-]?\\s*([0-9]+),
+    date_of_issue : มักขึ้นต้นด้วย DATE\\s+OF\\s+ISSUE\\s*[:\\-]?\\s*([0-9]+),
+    bank : มักขึ้นต้นด้วย (PEOPLE'S\\s+BANK[\\s\\S]*?SRI\\s+LANKA\\.?)
+    commercial_invoice_no : มักขึ้นต้นด้วย COMMERCIAL\\s+INVOICE\\s+NO\\.?\\s*[:\\-]?\\s*([A-Z0-9]+),
     date : มักขึ้นต้นด้วย Date,
     }}
     """
-    result_1 = call_gemma_Header(PROMPT1)
-    result_2 = call_gemma_Details(PROMPT2)
+        result_1 = call_gemma_Header(PROMPT1)
+        result_2 = call_gemma_Details(PROMPT2)
+        final_result = merge_dicts(result_1, result_2)
+        TransactionRepo.update(
+            db,
+            int(transaction_id),
+            TransactionUpdate(status="pending", current_process="insurance"),
+            user_id=user_id,
+        )
+        audit_log_service.log_action(
+            db, "extract", "insurance", user_id, transaction_id
+        )
+        return final_result
+    except Exception as e:
+        logger.error(f"Error extracting insurance: {str(e)}")
+        raise
 
-    final_result = merge_dicts(result_1, result_2)
-    TransactionRepo.update(
-        db,
-        int(transaction_id),
-        TransactionUpdate(status="pending", current_process="insurance"),
-        user_id=user_id,
-    )
-    audit_log_service.log_action(db, "extract", "insurance", user_id, transaction_id)
-    return final_result
+
+def process_insurance_extraction(
+    job_id: str, file_path: str, user_id: int, transaction_id: int
+):
+    db = SessionLocal()
+    try:
+        ExtractionJobRepo.update(db, job_id, ExtractionJobUpdate(status="processing"))
+        result = extract_insurance(db, file_path, transaction_id, user_id, job_id)
+        ExtractionJobRepo.update(
+            db, job_id, ExtractionJobUpdate(status="completed", result=result)
+        )
+    except Exception as e:
+        ExtractionJobRepo.update(
+            db, job_id, ExtractionJobUpdate(status="failed", error_message=str(e))
+        )
+    finally:
+        db.close()
 
 
 def get_check_insurance(db: Session, payload: InsuranceCheck):
@@ -188,7 +261,9 @@ def create_insurance(db: Session, payload: InsuranceCreate, user_id: int):
     else:
         # First version
         payload.version_insurance = 1
-    return InsuranceRepo.create(db, payload, user_id)
+    insurance = InsuranceRepo.create(db, payload, user_id)
+    ProformaInvoiceRepo.update_insurance_pi_items(db, payload.chassis_no, insurance.id)
+    return insurance
 
 
 def confirm_insurance(db: Session, payload: InsuranceConfirm, user_id: int):
@@ -233,5 +308,7 @@ def reject_insurance(db: Session, payload: InsuranceConfirm, user_id: int):
     except Exception as e:
         print(e)
         return False
-def get_insurance_by_id(db : Session , id : int):
-    return InsuranceRepo.get_all_versions_by_id(db , id)
+
+
+def get_insurance_by_id(db: Session, id: int):
+    return InsuranceRepo.get_all_versions_by_id(db, id)

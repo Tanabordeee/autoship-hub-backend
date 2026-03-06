@@ -30,3 +30,4 @@ class Insurance(Base):
     # Relationships
     user = relationship("User", back_populates="insurances")
     transactions = relationship("Transaction", back_populates="insurance")
+    pi_items = relationship("PiItem", back_populates="insurance")

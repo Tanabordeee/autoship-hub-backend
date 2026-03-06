@@ -20,6 +20,7 @@ origins = [
     "http://localhost:8080",
     "http://localhost:3000",
     "https://6850-171-98-132-247.ngrok-free.app",
+    "https://autoship-hub.vercel.app",
 ]
 
 app.add_middleware(

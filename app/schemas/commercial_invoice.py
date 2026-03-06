@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class CommercialInvoice(BaseModel):
@@ -10,12 +10,14 @@ class CommercialInvoice(BaseModel):
     transaction_id: int
     director: str
     bank: str
+    chassis_no: str
 
 
 class CreateCommercialInvoicePayload(BaseModel):
     transaction_id: int
     director: str
     bank: str
+    chassis_no: str
 
 
 class CommercialInvoiceResponse(BaseModel):
@@ -23,6 +25,4 @@ class CommercialInvoiceResponse(BaseModel):
     bank: str
     director: str
     user_id: int
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

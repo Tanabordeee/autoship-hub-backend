@@ -187,3 +187,44 @@ class ProformaInvoiceRepo:
             .all()
         )
         return [r[0] for r in transactions]
+
+    def get_pi_items_by_chassis(db: Session, chassis: str):
+        return db.query(PiItem).filter(PiItem.description == chassis).first()
+
+    def update_si_pi_items(db: Session, chassis: str, si_id: int):
+        pi = db.query(PiItem).filter(PiItem.description == chassis).first()
+        if not pi:
+            raise BaseException("Pi Item not found")
+        pi.si_id = si_id
+        db.commit()
+        db.refresh(pi)
+        return pi
+
+    def update_commercial_invoice_pi_items(
+        db: Session, chassis: str, commercial_invoice_id: int
+    ):
+        pi = db.query(PiItem).filter(PiItem.description == chassis).first()
+        if not pi:
+            raise BaseException("Pi Item not found")
+        pi.commercial_invoice_id = commercial_invoice_id
+        db.commit()
+        db.refresh(pi)
+        return pi
+
+    def update_bl_pi_items(db: Session, chassis: str, bl_id: int):
+        pi = db.query(PiItem).filter(PiItem.description == chassis).first()
+        if not pi:
+            raise BaseException("Pi Item not found")
+        pi.bl_id = bl_id
+        db.commit()
+        db.refresh(pi)
+        return pi
+
+    def update_insurance_pi_items(db: Session, chassis: str, insurance_id: int):
+        pi = db.query(PiItem).filter(PiItem.description == chassis).first()
+        if not pi:
+            raise BaseException("Pi Item not found")
+        pi.insurance_id = insurance_id
+        db.commit()
+        db.refresh(pi)
+        return pi

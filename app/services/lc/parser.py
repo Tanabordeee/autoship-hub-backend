@@ -1,6 +1,15 @@
 import re
-import ollama
 import json
+from openai import OpenAI
+from app.core.config import settings
+
+if settings.DEMO == 1:
+    # Initialize Typhoon Client
+    client = OpenAI(
+        api_key=settings.TYPHOON_API_KEY, base_url=settings.TYPHOON_CHAT_URL
+    )
+else:
+    import ollama
 
 
 def clean_text_common(text: str) -> str:
@@ -110,12 +119,39 @@ def extract_swift_field(full_text: str):
 
 
 def call_gemma(header, prompt):
-    response = ollama.chat(
-        model="qwen2.5:7b-instruct",
-        messages=[
-            {
-                "role": "system",
-                "content": f"""
+    if settings.DEMO == 1:
+        if not prompt:
+            return ""
+        response = client.chat.completions.create(
+            model=settings.TYPHOON_CHAT_MODEL,
+            messages=[
+                {
+                    "role": "system",
+                    "content": f"""
+                        You are a SWIFT LC (MT700) field extraction engine.
+        Extract ONLY field 46A (DOCUMENTS REQUIRED).
+        Return only conditions
+        FIND CONTENT THAT ABOUT {header}
+        Rules:
+        - Extract ONLY documents under field 46A
+        - Preserve original wording exactly
+        - Do NOT summarize
+        - Do NOT explain
+                        """,
+                },
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0,
+            max_tokens=16384,
+        )
+        return response.choices[0].message.content
+    else:
+        response = ollama.chat(
+            model="qwen2.5:7b-instruct",
+            messages=[
+                {
+                    "role": "system",
+                    "content": f"""
                 You are a SWIFT LC (MT700) field extraction engine.
 Extract ONLY field 46A (DOCUMENTS REQUIRED).
 
@@ -128,22 +164,67 @@ Rules:
 - Do NOT summarize
 - Do NOT explain
                 """,
-            },
-            {"role": "user", "content": prompt},
-        ],
-        options={"temperature": 0},
-    )
+                },
+                {"role": "user", "content": prompt},
+            ],
+            options={"temperature": 0},
+        )
     content = response["message"]["content"]
     return content
 
 
 def call_gemma_annexure(prompt):
-    response = ollama.chat(
-        model="qwen2.5:7b-instruct",
-        messages=[
-            {
-                "role": "system",
-                "content": """
+    if settings.DEMO == 1:
+        if not prompt:
+            return ""
+        response = client.chat.completions.create(
+            model=settings.TYPHOON_CHAT_MODEL,
+            messages=[
+                {
+                    "role": "system",
+                    "content": """
+                        You are a SWIFT LC (MT700) field extraction engine.
+        Extract ONLY field 46A (DOCUMENTS REQUIRED).
+        From field 46A, find **all content that mentions annexures in the INSPECTION_CERTIFICATE**.
+        Return JSON with every annexure. Use the following format:
+        "annexures": [
+        { "code": "A", "text": "..." },
+        { "code": "B", "text": "..." },
+        { "code": "C", "text": "..." }
+        ]
+        Rules:
+        - Extract ONLY documents under field 46A.
+        - Preserve original wording exactly.
+        - Do NOT summarize.
+        - Do NOT explain.
+        - Return valid JSON only.
+        - Include **all annexures mentioned**, not only code A.
+        """,
+                },
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0,
+            max_tokens=16384,
+        )
+        content = response.choices[0].message.content
+        # Try to extract JSON from markdown if present
+        json_match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", content, re.DOTALL)
+        if json_match:
+            content = json_match.group(1)
+        else:
+            # Try to find the first '{' and last '}'
+            start = content.find("{")
+            end = content.rfind("}")
+            if start != -1 and end != -1:
+                content = content[start : end + 1]
+        return content
+    else:
+        response = ollama.chat(
+            model="qwen2.5:7b-instruct",
+            messages=[
+                {
+                    "role": "system",
+                    "content": """
                 You are a SWIFT LC (MT700) field extraction engine.
 
 Extract ONLY field 46A (DOCUMENTS REQUIRED).
@@ -166,11 +247,11 @@ Rules:
 - Return valid JSON only.
 - Include **all annexures mentioned**, not only code A.
 """,
-            },
-            {"role": "user", "content": prompt},
-        ],
-        options={"temperature": 0},
-    )
+                },
+                {"role": "user", "content": prompt},
+            ],
+            options={"temperature": 0},
+        )
     content = response["message"]["content"]
 
     # Try to extract JSON from markdown if present
@@ -191,6 +272,9 @@ def extract_document_require_46A(full_text: str):
     print("DEBUG: Inside extract_document_require_46A")
     items = []
     text = extract_swift_field(full_text)
+    if not text:
+        print("DEBUG: Field 46A not found")
+        return {"items": []}
     print(f"DEBUG: extract_swift_field result: {text[:100] if text else 'None'}")
     print("46A : ", text)
     items.append(

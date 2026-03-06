@@ -10,13 +10,19 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font
 from openpyxl.utils import get_column_letter
 from app.services.audit_log_service import audit_log_service
+from app.db.session import SessionLocal
+from app.repositories.extraction_job_repo import ExtractionJobRepo
+from app.schemas.extraction_job import ExtractionJobCreate, ExtractionJobUpdate
+import uuid
+import logging
+
+logger = logging.getLogger(__name__)
 
 
-def extract_booking(db: Session, file, transaction_id: int, user_id: int):
+def extract_booking(db: Session, file_path: str, transaction_id: int, user_id: int):
 
     text = ""
-    file.file.seek(0)
-    with pdfplumber.open(file.file) as pdf:
+    with pdfplumber.open(file_path) as pdf:
         for page in pdf.pages:
             text += page.extract_text() or ""
 
@@ -193,6 +199,25 @@ def extract_booking(db: Session, file, transaction_id: int, user_id: int):
     return result
 
 
+def process_booking_extraction(
+    job_id: str, file_path: str, user_id: int, transaction_id: int
+):
+    db = SessionLocal()
+    try:
+        ExtractionJobRepo.update(db, job_id, ExtractionJobUpdate(status="processing"))
+        result = extract_booking(db, file_path, transaction_id, user_id)
+        ExtractionJobRepo.update(
+            db, job_id, ExtractionJobUpdate(status="completed", result=result)
+        )
+    except Exception as e:
+        logger.error(f"Error extracting Booking: {str(e)}")
+        ExtractionJobRepo.update(
+            db, job_id, ExtractionJobUpdate(status="failed", error_message=str(e))
+        )
+    finally:
+        db.close()
+
+
 def create_booking(
     db: Session, payload: CreateBooking, user_id: int, transaction_id: int
 ):
@@ -266,5 +291,6 @@ def create_booking_excel(db: Session, id: int, transaction_id: int, user_id: int
     audit_log_service.log_action(db, "export", "booking", user_id, transaction_id)
     return file_path
 
-def get_booking_by_id(db : Session , id : int):
-    return BookingRepo.get_by_id(db , id)
+
+def get_booking_by_id(db: Session, id: int):
+    return BookingRepo.get_by_id(db, id)

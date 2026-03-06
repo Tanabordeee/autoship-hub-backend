@@ -89,10 +89,23 @@ class PiItem(Base):
     )
     bv_id = Column(BigInteger, ForeignKey("bv.id", ondelete="SET NULL"), nullable=True)
     __table_args__ = (UniqueConstraint("pi_id", "item_no", name="uq_pi_items_item_no"),)
-
+    si_id = Column(BigInteger, ForeignKey("si.id", ondelete="SET NULL"), nullable=True)
+    commercial_invoice_id = Column(
+        BigInteger,
+        ForeignKey("commercial_invoice.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    bl_id = Column(BigInteger, ForeignKey("bl.id", ondelete="SET NULL"), nullable=True)
+    insurance_id = Column(
+        BigInteger, ForeignKey("insurance.id", ondelete="SET NULL"), nullable=True
+    )
     # Relationships
     proforma_invoice = relationship("ProformaInvoice", back_populates="items")
     parent = relationship("PiItem", remote_side=[id], backref="children")
     booking = relationship("Booking", backref="pi_items")
     vehicle_register = relationship("VehicleRegister", back_populates="pi_items")
     bv = relationship("BV", back_populates="pi_items")
+    si = relationship("SI", back_populates="pi_items")
+    commercial_invoice = relationship("CommercialInvoice", back_populates="pi_items")
+    bl = relationship("BL", back_populates="pi_items")
+    insurance = relationship("Insurance", back_populates="pi_items")

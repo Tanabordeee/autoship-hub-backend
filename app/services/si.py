@@ -17,15 +17,17 @@ import num2words
 from app.services.audit_log_service import audit_log_service
 from openpyxl import load_workbook
 from copy import copy
+from app.repositories.proforma_invoice_repo import ProformaInvoiceRepo
 
 logger = logging.getLogger(__name__)
 
 
 def create_si(db: Session, payload: SICreate, user_id: int):
+    pi = ProformaInvoiceRepo.get_pi_items_by_chassis(db, payload.chassis_no)
     si = SI_Repository.create_si(db, payload)
     lc = LCRepo.get_by_id(db, payload.lc_id)
-    booking = BookingRepo.get_by_id(db, payload.booking_id)
-    vehicle_register = VehicleRegisterRepo.get_by_id(db, payload.vehicle_register_id)
+    booking = BookingRepo.get_by_id(db, pi.booking_id)
+    vehicle_register = VehicleRegisterRepo.get_by_id(db, pi.vehicle_register_id)
     proforma_invoice = ProformaInvoiceRepo.get_by_id(db, payload.pi_id)
     if not si or not lc or not booking or not vehicle_register or not proforma_invoice:
         return None
@@ -105,6 +107,7 @@ def create_si(db: Session, payload: SICreate, user_id: int):
         user_id=user_id,
     )
     audit_log_service.log_action(db, "create", "si", user_id, payload.transaction_id)
+    ProformaInvoiceRepo.update_si_pi_items(db, payload.chassis_no, si.id)
     return {"output_path": output_path, "si_id": si.id}
 
 
@@ -327,9 +330,10 @@ def generate_excel(db, payload):
     template_path = r"E:\\job\\autoship-hub-server\\app\\templates\\si_template.xlsx"
     wb = load_workbook(template_path)
     ws = wb.active
+    pi = ProformaInvoiceRepo.get_pi_items_by_chassis(db, payload.chassis_no)
     lc = LCRepo.get_by_id(db, payload.lc_id)
-    booking = BookingRepo.get_by_id(db, payload.booking_id)
-    vehicle_register = VehicleRegisterRepo.get_by_id(db, payload.vehicle_register_id)
+    booking = BookingRepo.get_by_id(db, pi.booking_id)
+    vehicle_register = VehicleRegisterRepo.get_by_id(db, pi.vehicle_register_id)
     proforma_invoice = ProformaInvoiceRepo.get_by_id(db, payload.pi_id)
     if not lc or not booking or not vehicle_register or not proforma_invoice:
         return None
