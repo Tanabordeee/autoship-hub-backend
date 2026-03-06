@@ -71,6 +71,10 @@ def reject_proforma_invoice(db: Session, pi_id: str, user_id: int):
     return res
 
 
+def get_all_data_pi_items_by_pi_id_service(db: Session, pi_id: int):
+    return ProformaInvoiceRepo.get_all_data_pi_items_by_pi_id(db, pi_id)
+
+
 def get_proforma_invoice_by_pi_id(db: Session, pi_id: str):
     return ProformaInvoiceRepo.get_by_pi_id(db, pi_id)
 

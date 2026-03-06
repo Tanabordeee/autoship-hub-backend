@@ -228,3 +228,22 @@ class ProformaInvoiceRepo:
         db.commit()
         db.refresh(pi)
         return pi
+
+    def update_chassis_pi_items(db: Session, chassis: str, new_chassis: str):
+        pi = db.query(PiItem).filter(PiItem.description == chassis).first()
+        if not pi:
+            raise BaseException("Pi Item not found")
+        pi.description = new_chassis
+        db.commit()
+        db.refresh(pi)
+        return pi
+
+    def get_all_data_pi_items_by_pi_id(db: Session, pi_id: int):
+        return (
+            db.query(PiItem)
+            .filter(
+                PiItem.pi_id == pi_id,
+                PiItem.item_type == "CHASSIS",  # เพิ่มเงื่อนไข item_type
+            )
+            .all()
+        )

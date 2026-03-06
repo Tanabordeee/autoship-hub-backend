@@ -11,6 +11,7 @@ from app.services.proforma_invoice_service import (
     get_proforma_invoice_by_pi_id,
     get_proforma_invoice_by_id,
     get_chassis_by_pi_id,
+    get_all_data_pi_items_by_pi_id_service,
 )
 from app.api.deps import get_db
 from app.schemas.proforma_invoice import (
@@ -124,3 +125,12 @@ def generate_excel_endpoint(
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         filename=f"invoice_{pi_id}.xlsx",
     )
+
+
+@router.get("/pi_items/{pi_id}")
+def get_all_data_pi_items_by_pi_id_endpoint(
+    pi_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return get_all_data_pi_items_by_pi_id_service(db, pi_id)
