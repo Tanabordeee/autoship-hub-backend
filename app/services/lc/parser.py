@@ -115,6 +115,11 @@ def extract_swift_field(full_text: str):
         return content
 
     print("DEBUG: extract_swift_field match NOT FOUND")
+    start_index = full_text.find("DOCUMENTS REQUIRED")
+    if start_index != -1:
+        print(f"DEBUG: extract_swift_field fallback FOUND at index {start_index}")
+        content = full_text[start_index:]
+        return content
     return None
 
 
