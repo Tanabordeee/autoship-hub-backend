@@ -11,194 +11,63 @@ from app.repositories.si import SI_Repository
 from datetime import datetime
 from app.repositories.bl import BLRepository
 from app.schemas.bl import BLCreate
-from bs4 import BeautifulSoup
 from app.services.audit_log_service import audit_log_service
 from app.core.config import settings
 from app.repositories.extraction_job_repo import ExtractionJobRepo
-from app.schemas.extraction_job import ExtractionJobCreate, ExtractionJobUpdate
-import uuid
+from app.schemas.extraction_job import ExtractionJobUpdate
 import logging
 from app.db.session import SessionLocal
-from app.repositories.proforma_invoice_repo import ProformaInvoiceRepo
+from .bl_parser import extract_bl_by_ai
 
 logger = logging.getLogger(__name__)
 
 
-def extract_block(text, label):
-    if settings.DEMO == 1:
-        pattern = rf"{label}:?\s*\n(.*?)(?=\n[A-Z][A-Za-z ]+:|\n\n)"
-        m = re.search(pattern, text, re.S)
-        return m.group(1).strip() if m else None
-    else:
-        """
-        ดึงข้อความใต้หัวข้อ จนกว่าจะเจอหัวข้อถัดไปหรือบรรทัดว่างใหญ่
-        """
-        pattern = rf"{label}\s*:\s*\n(.*?)(?=\n\n[A-Z/ ]+?:|\n\n[A-Z][A-Za-z ]+\n|$)"
-        m = re.search(pattern, text, re.S | re.I)
-        return m.group(1).strip() if m else None
-
-
-def extract_single(text, pattern):
-    m = re.search(pattern, text, re.I)
-    return m.group(1).strip() if m else None
-
-
 def extract_bl(db: Session, file_path: str, transaction_id: int, user_id: int):
     try:
-        if settings.DEMO == 1:
-            text = extract_text_from_path(file_path)
-            text = re.sub(r"\*\*", "", text)
-            text = re.sub(r"\r", "", text)
-            text = re.sub(r"[ \t]+", " ", text)
-            text = re.sub(r"\n{3,}", "\n\n", text)
-            data = {}
-            data["bl_number"] = extract_single(text, r"B\/L Number[:\s]*([A-Z0-9]+)")
-            data["jo_number"] = extract_single(text, r"J\/O Number[:\s]*([A-Z0-9]+)")
-            data["ocean_vessel"] = extract_single(
-                text, r"Ocean Vessel\s*\n\s*([^\n\/]+)"
-            )
+        text = extract_text_from_path(file_path)
 
-            data["port_of_loading"] = extract_single(
-                text, r"Port of Loading\s*\n\s*([^\n]+)"
-            )
+        # Call AI Typhoon for extraction
+        ai_data = extract_bl_by_ai(text)
 
-            data["port_of_discharge"] = extract_single(
-                text, r"Port of Discharge.*?\n(.*?)(?=\n[A-Z][A-Za-z /]{3,}\n|\n\n|$)"
-            )
-            if not data["port_of_discharge"]:
-                data["port_of_discharge"] = extract_single(
-                    text, r"Place of Delivery\s*\n\s*([A-Z ,]+)\s*\/"
-                )
-            data["freight_payable_at"] = extract_single(
-                text, r"Freight Payable at\s*\n(.*?)(?=\n[A-Z][A-Za-z /]{3,}\n|\n\n|$)"
-            )
+        # Ensure we have a valid data dictionary
+        data = {
+            "bl_number": ai_data.get("bl_number"),
+            "jo_number": ai_data.get("jo_number"),
+            "ocean_vessel": ai_data.get("ocean_vessel"),
+            "port_of_loading": ai_data.get("port_of_loading"),
+            "port_of_discharge": ai_data.get("port_of_discharge"),
+            "freight_payable_at": ai_data.get("freight_payable_at"),
+            "number_of_original_bs": ai_data.get("number_of_original_bs"),
+            "gross_weight": ai_data.get("gross_weight"),
+            "measurement": ai_data.get("measurement"),
+            "shipper": ai_data.get("shipper"),
+            "consignee": ai_data.get("consignee"),
+            "notify_party": ai_data.get("notify_party"),
+            "cy_cf": ai_data.get("cy_cf"),
+            "description_of_good": ai_data.get("description_of_good"),
+            "container": ai_data.get("container"),
+            "seal_no": ai_data.get("seal_no"),
+            "size_no": ai_data.get("size_no"),
+            "place_of_receipt": ai_data.get("place_of_receipt"),
+            "place_of_delivery": ai_data.get("place_of_delivery"),
+            "text": text,
+        }
 
-            data["number_of_original_bs"] = extract_single(
-                text, r"Number of Original Bs\/L\s*\n\s*([^\n\/]+)"
-            )
-            data["gross_weight"] = extract_single(
-                text, r"(\d{1,3}(?:,\d{3})*\.\d+\s*KGS)"
-            )
+        # Update transaction status
+        TransactionRepo.update(
+            db,
+            int(transaction_id),
+            TransactionUpdate(status="pending", current_process="bl"),
+            user_id=user_id,
+        )
 
-            data["measurement"] = extract_single(text, r"(\d+\.\d+\s*CBM)")
+        # Log action
+        audit_log_service.log_action(db, "extract", "bl", user_id, transaction_id)
 
-            data["shipper"] = extract_block(text, "Shipper")
-            data["consignee"] = extract_block(text, "Consignee")
-            data["notify_party"] = extract_block(text, "Notify Party")
-            data["cy_cf"] = extract_single(text, r"SHIPPED\s+ON\s+BOARD\s*:\s*([^</]+)")
-            desc_match = re.search(
-                r"\|\s*PAP\s*\|\s*[^|]+\|\s*(.*?)\s*\|\s*[\d,\.]+\s*KGS",
-                text,
-                re.S,
-            )
-
-            if desc_match:
-                data["description_of_good"] = desc_match.group(1).strip()
-            else:
-                data["description_of_good"] = None
-            container_match = re.search(
-                r"([A-Z]{4}\d{7})\/(\d{6,})\/([0-9]{2}'(?:HQ|GP|RF))", text
-            )
-            if container_match:
-                data["container"] = container_match.group(1)
-                data["seal_no"] = container_match.group(2)
-                data["size_no"] = container_match.group(3)
-            data["place_of_receipt"] = extract_single(
-                text,
-                r"Place of receipt\s*\n\s*([A-Z ,]+)(?:\/)?",
-            )
-            data["place_of_delivery"] = extract_single(
-                text, r"Place of Delivery\s*\n\s*([^\n]+)"
-            )
-            TransactionRepo.update(
-                db,
-                int(transaction_id),
-                TransactionUpdate(status="pending", current_process="bl"),
-                user_id=user_id,
-            )
-            data["text"] = text
-            audit_log_service.log_action(db, "extract", "bl", user_id, transaction_id)
-        else:
-            text = extract_text_from_path(file_path)
-            data = {}
-            data["bl_number"] = extract_single(text, r"B/L Number\s*\n([A-Z0-9]+)")
-            data["jo_number"] = extract_single(text, r"J/O Number\s*\n([A-Z0-9]+)")
-            data["ocean_vessel"] = extract_single(
-                text, r"Ocean Vessel\s*\n(.*?)(?=\n[A-Z][A-Za-z /]{3,}\n|\n\n|$)"
-            )
-
-            data["port_of_loading"] = extract_single(
-                text, r"Port of Loading\s*\n(.*?)(?=\n[A-Z][A-Za-z /]{3,}\n|\n\n|$)"
-            )
-
-            data["port_of_discharge"] = extract_single(
-                text, r"Port of Discharge.*?\n(.*?)(?=\n[A-Z][A-Za-z /]{3,}\n|\n\n|$)"
-            )
-            if not data["port_of_discharge"]:
-                data["port_of_discharge"] = extract_single(
-                    text, r"Place of Delivery\s*\n\s*([A-Z ,]+)\s*\/"
-                )
-            data["freight_payable_at"] = extract_single(
-                text, r"Freight Payable at\s*\n(.*?)(?=\n[A-Z][A-Za-z /]{3,}\n|\n\n|$)"
-            )
-
-            data["number_of_original_bs"] = extract_single(
-                text, r"Number of Original Bs\/L\s*\n\s*([^\n\/]+)"
-            )
-            data["gross_weight"] = extract_single(
-                text, r"(\d{1,3}(?:,\d{3})*\.\d+\s*KGS)"
-            )
-
-            data["measurement"] = extract_single(text, r"(\d+\.\d+\s*CBM)")
-
-            data["shipper"] = extract_block(text, "Shipper")
-            data["consignee"] = extract_block(text, "Consignee")
-            data["notify_party"] = extract_block(text, "Notify Party")
-            data["cy_cf"] = extract_single(text, r"SHIPPED\s+ON\s+BOARD\s*:\s*([^</]+)")
-            soup = BeautifulSoup(text, "html.parser")
-            table = soup.find("table")
-
-            # Check if table exists before trying to access it
-            if table:
-                rows = table.find_all("tr")
-                if len(rows) > 1:  # Ensure we have at least header and one data row
-                    headers = [td.get_text(strip=True) for td in rows[0].find_all("td")]
-
-                    if "Description of Packages and Goods" in headers:
-                        desc_idx = headers.index("Description of Packages and Goods")
-                        data["description_of_good"] = (
-                            rows[1].find_all("td")[desc_idx].get_text(" ", strip=True)
-                        )
-                    else:
-                        data["description_of_good"] = None
-                else:
-                    data["description_of_good"] = None
-            else:
-                data["description_of_good"] = None
-            container_match = re.search(
-                r"([A-Z]{4}\d{7})\/(\d{6,})\/([0-9]{2}'(?:HQ|GP|RF))", text
-            )
-            if container_match:
-                data["container"] = container_match.group(1)
-                data["seal_no"] = container_match.group(2)
-                data["size_no"] = container_match.group(3)
-            data["place_of_receipt"] = extract_single(
-                text,
-                r"Place of receipt\s*\n\s*([A-Z ,]+)(?:\/)?",
-            )
-            data["place_of_delivery"] = extract_single(
-                text,
-                r"Place of Delivery\s*\n\s*([A-Z ,]+)(?:\/)?",
-            )
-            TransactionRepo.update(
-                db,
-                int(transaction_id),
-                TransactionUpdate(status="pending", current_process="bl"),
-                user_id=user_id,
-            )
-            data["text"] = text
-            audit_log_service.log_action(db, "extract", "bl", user_id, transaction_id)
         return data
+    except Exception as e:
+        logger.error(f"Error extracting BL: {str(e)}")
+        raise
     except Exception as e:
         logger.error(f"Error extracting BL: {str(e)}")
         raise
