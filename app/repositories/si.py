@@ -14,6 +14,7 @@ class SI_Repository:
             no_of_packages=payload.no_of_packages,
             seal_no=payload.seal_no,
             user_id=payload.user_id,
+            container_no=payload.container_no,
         )
         db.add(si)
         db.commit()

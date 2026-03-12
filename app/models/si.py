@@ -15,6 +15,7 @@ class SI(Base):
     seal_no = Column(Text)
     image_base64 = Column(Text, nullable=True)
     user_id = Column(Integer, ForeignKey("users.id"))
+    container_no = Column(Text)
     user = relationship("User", back_populates="si")
     transactions = relationship("Transaction", back_populates="si")
     pi_items = relationship("PiItem", back_populates="si")

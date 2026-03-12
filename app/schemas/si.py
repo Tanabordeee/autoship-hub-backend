@@ -17,6 +17,7 @@ class SICreate(BaseModel):
     output_path: str
     transaction_id: int
     chassis_no: str
+    container_no: str
 
 
 class ConfirmSi(BaseModel):

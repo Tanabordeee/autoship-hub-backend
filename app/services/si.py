@@ -31,6 +31,7 @@ def create_si(db: Session, payload: SICreate, user_id: int):
     proforma_invoice = ProformaInvoiceRepo.get_by_id(db, payload.pi_id)
     if not si or not lc or not booking or not vehicle_register or not proforma_invoice:
         return None
+
     logger.info("description_of_good_45a_45b: %s", lc.description_of_good_45a_45b)
     item_first_text = lc.document_require_46a["items"][0]["conditions"]
     match = re.search(
@@ -85,6 +86,7 @@ def create_si(db: Session, payload: SICreate, user_id: int):
         vehicle_register=vehicle_register,
         proforma_invoice=proforma_invoice,
         as_per_proforma_invoice=as_per_proforma_invoice,
+        container_no=payload.container_no,
         etd=etd,
     )
     # Convert to PDF using WeasyPrint
@@ -180,7 +182,7 @@ def fill_data(ws, data):
     vehicle_register = data.get("vehicle_register")
     seal_no = data.get("seal_no")
     etd = data.get("etd")
-
+    container_no = data.get("container_no")
     # ====== 1. ใส่ bank_lines เริ่มที่ A8 ======
     start_row = 8
     col = 1  # column A = 1
@@ -315,7 +317,7 @@ def fill_data(ws, data):
     _set_merged_value(ws, 42 + offset, 4, credit_info)
     _set_merged_value(ws, 43 + offset, 4, lc.issuing_bank_52a)
 
-    booking_seal = (booking.carrier_booking_no or "") + " / " + (seal_no or "")
+    booking_seal = (container_no or "") + " / " + (seal_no or "")
     _set_merged_value(ws, 53 + offset, 1, booking_seal)
 
     shipped_info = (
@@ -374,6 +376,7 @@ def generate_excel(db, payload):
     no_of_packages = payload.no_of_packages
     original_bs = payload.number_of_original_bs
     seal_no = payload.seal_no
+    container_no = payload.container_no
     data = {
         "bank_lines": bank_lines,
         "number_of_original_bs": number_of_original_bs,
@@ -390,6 +393,7 @@ def generate_excel(db, payload):
         "no_of_packages": no_of_packages,
         "original_bs": original_bs,
         "seal_no": seal_no,
+        "container_no": container_no,
     }
     fill_data(ws, data)
     wb.save(payload.output_path)
