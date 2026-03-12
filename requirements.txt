@@ -12,3 +12,5 @@ passlib[bcrypt]
 python-multipart
 
 alembic
+easyocr
+openai==1.57.4
