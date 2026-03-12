@@ -9,7 +9,13 @@ from app.repositories.transaction_repo import TransactionRepo
 from app.schemas.transaction import TransactionUpdate
 from app.core.config import settings
 from app.services.ocr_service import ocr_image
-from .parser import clean_text_common, clean_45a_text, extract_document_require_46A
+from .parser import (
+    clean_text_common,
+    clean_45a_text,
+    extract_document_require_46A,
+    detect_amendment,
+    extract_lc_by_ai,
+)
 from app.repositories.proforma_invoice_repo import ProformaInvoiceRepo
 from app.services.audit_log_service import audit_log_service
 from app.repositories.extraction_job_repo import ExtractionJobRepo
@@ -112,7 +118,7 @@ def call_qwen(prompt: str):
                 },
             ],
             temperature=0,
-            max_tokens=4096,
+            max_tokens=8192,
         )
         content = response.choices[0].message.content
         return content
@@ -183,7 +189,7 @@ def extract_bank_name(prompt: str):
                 },
             ],
             temperature=0,
-            max_tokens=512,
+            max_tokens=8192,
         )
         content = response.choices[0].message.content
         try:
@@ -239,7 +245,70 @@ def extract_lc(db: Session, file_path: str, user_id: int, transaction_id: int):
 
     # Combine all text
     full_text = "\n\n".join(f"[Page {r['page']}]\n{r['text']}" for r in results)
-    # Extract all fields using regex
+
+    # 1. Detect if it's an amendment
+    if detect_amendment(full_text):
+        logger.info("[LC] Amendment detected. Extracting by AI.")
+        ai_data = extract_lc_by_ai(full_text)
+        # Map AI results to the response format
+        response_data = {
+            "beneficiary_59": ai_data.get("beneficiary_59"),
+            "applicant_50": ai_data.get("applicant_50"),
+            "description_of_good_45a_45b": ai_data.get("description_of_goods_45a"),
+            "date_of_issue_31c": ai_data.get("date_of_issue_31c"),
+            "lc_no": ai_data.get("lc_no"),
+            "document_require_46a": ai_data.get("documents_required_46a"),
+            "docmentary_credit_number_20": ai_data.get("lc_no")
+            or ai_data.get("docmentary_credit_number_20"),
+            "sequence_of_total_27": ai_data.get("sequence_of_total_27"),
+            "form_of_documentary_credit_40a": ai_data.get(
+                "form_of_documentary_credit_40a"
+            ),
+            "applicable_rules_40e": ai_data.get("applicable_rules_40e"),
+            "date_and_place_of_expiry_31d": ai_data.get("date_and_place_of_expiry_31d"),
+            "currency_code_32b": ai_data.get("currency_code_32b"),
+            "available_with_41d": ai_data.get("available_with_41d"),
+            "partial_shipments_43p": ai_data.get("partial_shipments_43p"),
+            "transhipment_43t": ai_data.get("transhipment_43t"),
+            "port_of_discharge_44f": ai_data.get("port_of_discharge_44f"),
+            "port_of_loading_of_departure_44e": ai_data.get(
+                "port_of_loading_of_departure_44e"
+            ),
+            "latest_date_of_shipment_44c": ai_data.get("latest_date_of_shipment_44c"),
+            "charges_71d": ai_data.get("charges_71d"),
+            "additional_conditions_47a": ai_data.get("additional_conditions_47a"),
+            "period_for_presentation_in_days_48": ai_data.get(
+                "period_for_presentation_in_days_48"
+            ),
+            "confirmation_instructions_49": ai_data.get("confirmation_instructions_49"),
+            "instructions_to_the_paying_accepting_negotiating_bank_78": ai_data.get(
+                "instructions_to_the_paying_accepting_negotiating_bank_78"
+            ),
+            "number_of_amendment_26e": ai_data.get("number_of_amendment_26e"),
+            "date_of_amendment_30": ai_data.get("date_of_amendment_30"),
+            "applicant_bank_51d": ai_data.get("applicant_bank_51d"),
+            "drafts_at_42c": ai_data.get("drafts_at_42c"),
+            "drawee_42a": ai_data.get("drawee_42a"),
+            "sender_reference_20": ai_data.get("sender_reference_20"),
+            "receiver_reference_21": ai_data.get("receiver_reference_21"),
+            "issuing_bank_reference_23": ai_data.get("issuing_bank_reference_23"),
+            "issuing_bank_52a": ai_data.get("issuing_bank_52a"),
+            "purpose_of_message_22a": ai_data.get("purpose_of_message_22a"),
+            "additional_conditions_47b": ai_data.get("additional_conditions_47b"),
+            "pdf_path": file_path,
+            "text": full_text,
+        }
+
+        TransactionRepo.update(
+            db,
+            transaction_id,
+            TransactionUpdate(status="pending", current_process="lc"),
+            user_id=user_id,
+        )
+        audit_log_service.log_action(db, "extract", "lc", user_id, transaction_id)
+        return response_data
+
+    # 2. Extract all fields using regex (Normal LC)
     extracted_data = {
         "sequence_of_total_27": re.search(
             r"SEQUENCE\s*OF\s*TOTAL\s*(.+?)(?=\s*:|$)",
@@ -581,6 +650,28 @@ def extract_lc(db: Session, file_path: str, user_id: int, transaction_id: int):
         "pdf_path": file_path,
         "text": full_text,
     }
+
+    # 3. AI Fallback for missing critical fields in normal LC
+    critical_fields = ["beneficiary_59", "applicant_50", "lc_no"]
+    if any(response_data.get(field) is None for field in critical_fields):
+        logger.info("[LC] Critical fields missing. Attempting AI Fallback.")
+        ai_fallback_data = extract_lc_by_ai(full_text)
+        for field in critical_fields:
+            if response_data.get(field) is None:
+                response_data[field] = ai_fallback_data.get(field)
+
+        # Update description_of_good_45a_45b if still None
+        if not response_data.get("description_of_good_45a_45b"):
+            response_data["description_of_good_45a_45b"] = ai_fallback_data.get(
+                "description_of_goods_45a"
+            )
+
+        # Update document_require_46a if still None
+        if not response_data.get("document_require_46a"):
+            response_data["document_require_46a"] = ai_fallback_data.get(
+                "documents_required_46a"
+            )
+
     TransactionRepo.update(
         db,
         transaction_id,

@@ -147,7 +147,7 @@ def call_gemma(header, prompt):
                 {"role": "user", "content": prompt},
             ],
             temperature=0,
-            max_tokens=16384,
+            max_tokens=8192,
         )
         return response.choices[0].message.content
     else:
@@ -209,7 +209,7 @@ def call_gemma_annexure(prompt):
                 {"role": "user", "content": prompt},
             ],
             temperature=0,
-            max_tokens=16384,
+            max_tokens=8192,
         )
         content = response.choices[0].message.content
         # Try to extract JSON from markdown if present
@@ -341,3 +341,189 @@ def extract_document_require_46A(full_text: str):
         }
     )
     return {"items": items}
+
+
+def detect_amendment(full_text: str):
+    amendment_keywords = [
+        "AMENDMENT",
+        "NUMBER OF AMENDMENT",
+        ":26E",
+        "DATE OF AMENDMENT",
+        "THIS AMENDMENT",
+    ]
+
+    text_upper = full_text.upper()
+
+    for k in amendment_keywords:
+        if k in text_upper:
+            return True
+
+    return False
+
+
+def extract_lc_by_ai(full_text):
+    if settings.DEMO == 1:
+        response = client.chat.completions.create(
+            model=settings.TYPHOON_CHAT_MODEL,
+            temperature=0,
+            max_tokens=8192,
+            messages=[
+                {
+                    "role": "system",
+                    "content": """
+You are an expert in SWIFT MT700 / MT707 LC documents.
+
+Extract all LC fields.
+
+If this is an AMENDMENT LC, return the UPDATED values.
+
+Return JSON only.
+""",
+                },
+                {
+                    "role": "user",
+                    "content": f"""
+Extract LC information from this text.
+
+Return JSON format:
+
+{{
+"lc_no": "",
+"beneficiary_59": "",
+"applicant_50": "",
+"date_of_issue_31c": "",
+"date_of_amendment_30": "",
+"number_of_amendment_26e": "",
+"description_of_goods_45a": [
+    {{ "item_no": 1, "description": "" }}
+],
+"documents_required_46a": {{ "items": [] }},
+"sequence_of_total_27": "",
+"sender_reference_20": "",
+"receiver_reference_21": "",
+"issuing_bank_reference_23": "",
+"issuing_bank_52a": "",
+"purpose_of_message_22a": "",
+"applicable_rules_40e": "",
+"latest_date_of_shipment_44c": "",
+"additional_conditions_47a": "",
+"additional_conditions_47b": "",
+"currency_code_32b": "",
+"date_and_place_of_expiry_31d": "",
+"form_of_documentary_credit_40a": "",
+"available_with_41d": "",
+"partial_shipments_43p": "",
+"transhipment_43t": "",
+"port_of_discharge_44f": "",
+"port_of_loading_of_departure_44e": "",
+"charges_71d": "",
+"period_for_presentation_in_days_48": "",
+"confirmation_instructions_49": "",
+"instructions_to_the_paying_accepting_negotiating_bank_78": "",
+"applicant_bank_51d": "",
+"drafts_at_42c": "",
+"drawee_42a": ""
+}}
+
+TEXT:
+{full_text}
+""",
+                },
+            ],
+        )
+
+        content = response.choices[0].message.content
+
+        # Try to extract JSON from markdown if present
+        json_match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", content, re.DOTALL)
+        if json_match:
+            content = json_match.group(1)
+        else:
+            # Try to find the first '{' and last '}'
+            start = content.find("{")
+            end = content.rfind("}")
+            if start != -1 and end != -1:
+                content = content[start : end + 1]
+
+        try:
+            return json.loads(content)
+        except Exception as e:
+            print(f"Error parsing AI extraction JSON: {e}")
+            return {}
+    else:
+        import ollama
+
+        response = ollama.chat(
+            model="qwen2.5:7b-instruct",
+            messages=[
+                {
+                    "role": "system",
+                    "content": """
+You are an expert in SWIFT MT700 / MT707 LC documents.
+
+Extract all LC fields.
+
+If this is an AMENDMENT LC, return the UPDATED values.
+
+Return JSON only.
+""",
+                },
+                {
+                    "role": "user",
+                    "content": f"""
+Extract LC information from this text.
+
+Return JSON format:
+
+{{
+"lc_no": "",
+"beneficiary_59": "",
+"applicant_50": "",
+"date_of_issue_31c": "",
+"date_of_amendment_30": "",
+"number_of_amendment_26e": "",
+"description_of_goods_45a": [
+    {{ "item_no": 1, "description": "" }}
+],
+"documents_required_46a": {{ "items": [] }},
+"sequence_of_total_27": "",
+"sender_reference_20": "",
+"receiver_reference_21": "",
+"issuing_bank_reference_23": "",
+"issuing_bank_52a": "",
+"purpose_of_message_22a": "",
+"applicable_rules_40e": "",
+"latest_date_of_shipment_44c": "",
+"additional_conditions_47a": "",
+"additional_conditions_47b": "",
+"currency_code_32b": "",
+"date_and_place_of_expiry_31d": "",
+"form_of_documentary_credit_40a": "",
+"available_with_41d": "",
+"partial_shipments_43p": "",
+"transhipment_43t": "",
+"port_of_discharge_44f": "",
+"port_of_loading_of_departure_44e": "",
+"charges_71d": "",
+"period_for_presentation_in_days_48": "",
+"confirmation_instructions_49": "",
+"instructions_to_the_paying_accepting_negotiating_bank_78": "",
+"applicant_bank_51d": "",
+"drafts_at_42c": "",
+"drawee_42a": ""
+}}
+
+TEXT:
+{full_text}
+""",
+                },
+            ],
+            options={"temperature": 0},
+            format="json",
+        )
+        content = response["message"]["content"]
+        try:
+            return json.loads(content)
+        except Exception as e:
+            print(f"Error parsing Ollama extraction JSON: {e}")
+            return {}
