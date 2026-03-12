@@ -26,6 +26,7 @@ class BVBase(BaseModel):
     lc_no: Optional[str] = None
     user_id: int
     lc_id: int
+    chassis_no: Optional[str] = None
     version_bv: int
 
     model_config = ConfigDict(from_attributes=True)

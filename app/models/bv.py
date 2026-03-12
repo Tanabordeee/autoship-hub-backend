@@ -29,6 +29,7 @@ class BV(Base):
     bv_ref_no = Column(Text)
     version_bv = Column(Integer)
     lc_no = Column(Text)
+    chassis_no = Column(Text)
     lc_id = Column(BigInteger, ForeignKey("lc.id"))
     user_id = Column(BigInteger, ForeignKey("users.id"))
 

@@ -32,6 +32,7 @@ class BVRepository:
             lc_no=payload.lc_no,
             user_id=payload.user_id,
             lc_id=payload.lc_id,
+            chassis_no=payload.chassis_no,
         )
         db.add(bv)
         db.commit()
@@ -54,7 +55,7 @@ class BVRepository:
         return db.query(BV).filter(BV.id == id).first()
 
     @staticmethod
-    def get_all_versions_by_id(db : Session , id : int):
+    def get_all_versions_by_id(db: Session, id: int):
         """Get all versions of an LC by the lc_no of the given id, sorted by versions descending"""
         bv = db.query(BV).filter(BV.id == id).first()
         if not bv:
