@@ -320,16 +320,17 @@ def fill_pi_sheet(ws, invoice):
         _set_merged_value(ws, f"B{start_r}", desc)
         _set_merged_value(ws, f"B{start_r + 1}", f"YEAR OF MANUFACTURE : {year}")
         _set_merged_value(ws, f"B{start_r + 2}", f"CHASSIS : {chassis}")
+        if freight > 0:
+            _set_merged_value(ws, f"B{start_r + 3}", "FREIGHT")
+            _set_merged_value(ws, f"F{start_r + 3}", freight)
+            _set_merged_value(ws, f"G{start_r + 3}", 1)
+            _set_merged_value(ws, f"H{start_r + 3}", f"=F{start_r + 3}*G{start_r + 3}")
 
-        _set_merged_value(ws, f"B{start_r + 3}", "FREIGHT")
-        _set_merged_value(ws, f"F{start_r + 3}", freight)
-        _set_merged_value(ws, f"G{start_r + 3}", 1)
-        _set_merged_value(ws, f"H{start_r + 3}", f"=F{start_r + 3}*G{start_r + 3}")
-
-        _set_merged_value(ws, f"B{start_r + 4}", "INSURANCE")
-        _set_merged_value(ws, f"F{start_r + 4}", insurance)
-        _set_merged_value(ws, f"G{start_r + 4}", 1)
-        _set_merged_value(ws, f"H{start_r + 4}", f"=F{start_r + 4}*G{start_r + 4}")
+        if insurance > 0:
+            _set_merged_value(ws, f"B{start_r + 4}", "INSURANCE")
+            _set_merged_value(ws, f"F{start_r + 4}", insurance)
+            _set_merged_value(ws, f"G{start_r + 4}", 1)
+            _set_merged_value(ws, f"H{start_r + 4}", f"=F{start_r + 4}*G{start_r + 4}")
 
         ws.merge_cells(
             start_row=start_r + 5, start_column=2, end_row=start_r + 5, end_column=3
@@ -347,11 +348,12 @@ def fill_pi_sheet(ws, invoice):
     # =========================
     insert_offset = offset_row
     if invoice.term_condition:
-        # ใส่หัวข้อ TERM & CONDITION ที่ B43
-        ws["B43"].value = "TERM & CONDITION"
-        ws["B43"].font = Font(bold=True)
-        thin_border = Border(bottom=Side(style="thin"))
-        ws["B43"].border = thin_border
+        # ใส่หัวข้อ TERM & CONDITION ที่ B43 + offset
+        # B43 is part of A43:F44
+        addr_header = f"B{36 + offset_row}"
+        _set_merged_value(ws, addr_header, "TERM & CONDITION")
+        ws[addr_header].font = Font(bold=True)
+        ws[addr_header].border = Border(bottom=Side(style="thin"))
 
         terms = (invoice.term_condition or "").split("\n")
         insert_offset = _ensure_term_rows(ws, len(terms), offset_row) + offset_row
